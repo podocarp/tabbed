@@ -1,5 +1,5 @@
-# surf version
-VERSION = 0.1
+# tabbed version
+VERSION = 0.0
 
 # Customize below to fit your system
 

@@ -93,7 +93,6 @@ static Window root, win;
 static Bool running = True;
 static unsigned int numlockmask = 0;
 /* configuration, allows nested code to access above variables */
-#define TABBED
 #include "config.h"
 
 void
