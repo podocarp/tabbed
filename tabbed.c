@@ -212,7 +212,7 @@ keypress(XEvent *e) {
 }
 
 void
-killclient(Arg *arg) {
+killclient(const Arg *arg) {
 	puts("close a window");
 }
 
