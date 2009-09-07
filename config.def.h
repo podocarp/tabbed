@@ -22,4 +22,5 @@ Key keys[] = { \
 	{ MODKEY,                       XK_8,      move,           { .i = 8 } },
 	{ MODKEY,                       XK_9,      move,           { .i = 9 } },
 	{ MODKEY,                       XK_0,      move,           { .i = 10 } },
+	{ MODKEY,                       XK_q,      killclient,     { 0 } },
 };

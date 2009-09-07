@@ -211,6 +211,11 @@ keypress(XEvent *e) {
 }
 
 void
+killclient(Arg *arg) {
+	puts("close a window");
+}
+
+void
 move(const Arg *arg) {
 	puts("move to nth tab");
 }
@@ -239,8 +244,6 @@ run(void) {
 
 void
 setup(void) {
-	XWMHints *wmh;
-
 	/* init screen */
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
@@ -264,11 +267,6 @@ setup(void) {
 	XSelectInput(dpy, win, StructureNotifyMask|PointerMotionMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
 			LeaveWindowMask);
-	wmh = XAllocWMHints();
-	wmh->input = False;
-	wmh->flags = InputHint;
-	XSetWMHints(dpy, win, wmh);
-	XFree(wmh);
 	XMapRaised(dpy, win);
 }
 
