@@ -3,13 +3,13 @@ static const char normbgcolor[]     = "#202020";
 static const char normfgcolor[]     = "#c0c0c0";
 static const char selbgcolor[]      = "#884400";
 static const char selfgcolor[]      = "#f0f0f0";
-static const char *surfexec[]       = { "surf", "-x" };
 
+#define SURF "surf", "-x"
 #define MODKEY ControlMask
 Key keys[] = { \
 	/* modifier                     key        function        argument */
-	{ MODKEY|ShiftMask,             XK_Return, newtab,         { 0 } },
-	{ MODKEY,                       XK_t,      newtab,         { 0 } },
+	{ MODKEY|ShiftMask,             XK_Return, spawntab,       { .v = (char*[]){ SURF, NULL} } },
+	{ MODKEY|ShiftMask,             XK_t,      spawntab,       { .v = (char*[]){ SURF, NULL} } },
 	{ MODKEY|ShiftMask,             XK_l,      rotate,         { .i = +1 } },
 	{ MODKEY|ShiftMask,             XK_h,      rotate,         { .i = -1 } },
 	{ MODKEY,                       XK_1,      move,           { .i = 1 } },

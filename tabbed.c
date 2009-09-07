@@ -2,22 +2,26 @@
  *
  * To understand tabbed, start reading main().
  */
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <locale.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xproto.h>
-#include <X11/extensions/XTest.h>
+#include <errno.h>
 
 /* macros */
 #define MAX(a, b)       ((a) > (b) ? (a) : (b))
 #define LENGTH(x)       (sizeof x / sizeof x[0])
 #define CLEANMASK(mask) (mask & ~(numlockmask|LockMask))
+#define TEXTW(x)        (textnw(x, strlen(x)) + dc.font.height)
 
 enum { ColFG, ColBG, ColLast };              /* color */
 
@@ -72,7 +76,7 @@ static void initfont(const char *fontstr);
 static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
 static void move(const Arg *arg);
-static void newtab(const Arg *arg);
+static void spawntab(const Arg *arg);
 static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
@@ -93,13 +97,10 @@ static DC dc;
 static Window root, win;
 static Bool running = True;
 static unsigned int numlockmask = 0;
+Client *clients, *sel;
+Listener *listeners;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-
-void
-buttonrelease(XEvent *e) {
-	//XButtonPressedEvent *ev = &e->xbutton;
-}
 
 void
 cleanup(void) {
@@ -136,9 +137,13 @@ die(const char *errstr, ...) {
 	exit(EXIT_FAILURE);
 }
 
-void
-unmapnotify(XEvent *e) {
-	running = False;
+void *
+emallocz(size_t size) {
+	void *p;
+
+	if(!(p = calloc(1, size)))
+		die(0, "Cannot Malloc");
+	return p;
 }
 
 void
@@ -222,8 +227,36 @@ move(const Arg *arg) {
 }
 
 void
-newtab(const Arg *arg) {
-	puts("opening new tab");
+sigchld(int signal) {
+	while(0 < waitpid(-1, NULL, WNOHANG));
+}
+
+void
+spawntab(const Arg *arg) {
+	int fd[2];
+	Listener *l;
+
+	if(pipe(fd)) {
+		perror("tabbed: pipe failed");
+		return;
+	}
+	l = emallocz(sizeof(Listener));
+	l->fd = fd[0];
+	l->next = listeners;
+	listeners = l;
+	signal(SIGCHLD, sigchld);
+	if(fork() == 0) {
+		if(dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		execvp(((char **)arg->v)[0], (char **)arg->v);
+		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
+		perror(" failed");
+		exit(0);
+	}
+	close(fd[1]);
 }
 
 void
@@ -233,13 +266,52 @@ rotate(const Arg *arg) {
 
 void
 run(void) {
+	char buf[32], *p;
+	fd_set rd;
+	int r, xfd;
+	unsigned int offset;
 	XEvent ev;
+	Listener *l;
 
+	/* main event loop, also reads status text from stdin */
 	XSync(dpy, False);
+	xfd = ConnectionNumber(dpy);
+	buf[LENGTH(buf) - 1] = '\0'; /* 0-terminator is never touched */
 	while(running) {
-		XNextEvent(dpy, &ev);
-		if(handler[ev.type])
-			(handler[ev.type])(&ev); /* call handler */
+		FD_ZERO(&rd);
+		for(l = listeners; l; l = l->next) {
+			printf("setting %i\n", l->fd);
+			FD_SET(l->fd, &rd);
+		}
+		FD_SET(xfd, &rd);
+		if(select(xfd + 1, &rd, NULL, NULL, NULL) == -1) {
+			if(errno == EINTR)
+				continue;
+			die("select failed\n");
+		}
+		for(l = listeners; l; l = l->next) {
+			printf("testing %i\n", l->fd);
+			if(!FD_ISSET(l->fd, &rd))
+				continue;
+			switch((r = read(l->fd, buf + offset, LENGTH(buf) - 1 - offset))) {
+			case -1:
+			case 0:
+				break;
+			default:
+				for(p = buf + offset; r > 0; p++, r--, offset++)
+					if(*p == '\n' || *p == '\0') {
+						*p = '\0';
+						printf("Got somthing: %s\n", buf);
+						break;
+					}
+				break;
+			}
+		}
+		while(XPending(dpy)) {
+			XNextEvent(dpy, &ev);
+			if(handler[ev.type])
+				(handler[ev.type])(&ev); /* call handler */
+		}
 	}
 }
 
@@ -283,6 +355,11 @@ textnw(const char *text, unsigned int len) {
 }
 
 void
+unmapnotify(XEvent *e) {
+	running = False;
+}
+
+void
 updatenumlockmask(void) {
 	unsigned int i, j;
 	XModifierKeymap *modmap;
@@ -313,6 +390,6 @@ main(int argc, char *argv[]) {
 	cleanup();
 	XCloseDisplay(dpy);
 	return 0;
-	textnw(surfexec[0], strlen(surfexec[0]));
+	textnw(" ", 1);
 	updatenumlockmask();
 }
