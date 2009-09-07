@@ -112,6 +112,7 @@ static void usage();
 static void update(Client *c, const gchar *title);
 static void zoom(Client *c, const Arg *arg);
 
+#define SURF
 #include "config.h"
 
 void

@@ -3,10 +3,10 @@
 
 include config.mk
 
-SRC = surf.c
+SRC = surf.c tabbed.c
 OBJ = ${SRC:.c=.o}
 
-all: options surf
+all: options surf tabbed
 
 options:
 	@echo surf build options:
@@ -24,9 +24,13 @@ config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
 
-surf: ${OBJ}
+surf: surf.o
 	@echo CC -o $@
 	@${CC} -o $@ surf.o ${LDFLAGS}
+
+tabbed: tabbed.o
+	@echo CC -o $@
+	@${CC} -o $@ tabbed.o ${LDFLAGS}
 
 clean:
 	@echo cleaning
