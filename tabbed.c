@@ -268,10 +268,10 @@ void
 run(void) {
 	char buf[32], *p;
 	fd_set rd;
-	int r, xfd;
-	unsigned int offset;
+	int r, xfd, maxfd;
+	unsigned int offset = 0;
 	XEvent ev;
-	Listener *l;
+	Listener *l, *pl;
 
 	/* main event loop, also reads status text from stdin */
 	XSync(dpy, False);
@@ -279,29 +279,42 @@ run(void) {
 	buf[LENGTH(buf) - 1] = '\0'; /* 0-terminator is never touched */
 	while(running) {
 		FD_ZERO(&rd);
+		maxfd = xfd;
+		FD_SET(xfd, &rd);
 		for(l = listeners; l; l = l->next) {
-			printf("setting %i\n", l->fd);
+			maxfd = MAX(maxfd, l->fd);
 			FD_SET(l->fd, &rd);
 		}
-		FD_SET(xfd, &rd);
-		if(select(xfd + 1, &rd, NULL, NULL, NULL) == -1) {
+		if(select(maxfd + 1, &rd, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR)
 				continue;
 			die("select failed\n");
 		}
 		for(l = listeners; l; l = l->next) {
-			printf("testing %i\n", l->fd);
 			if(!FD_ISSET(l->fd, &rd))
 				continue;
 			switch((r = read(l->fd, buf + offset, LENGTH(buf) - 1 - offset))) {
 			case -1:
+				perror("tabbed: fd error");
 			case 0:
+				if(listeners == l)
+					listeners = l->next;
+				else {
+					for(pl = listeners; pl->next != l ; pl = pl->next);
+					pl->next = l->next;
+				}
+				free(l);
 				break;
 			default:
 				for(p = buf + offset; r > 0; p++, r--, offset++)
 					if(*p == '\n' || *p == '\0') {
-						*p = '\0';
 						printf("Got somthing: %s\n", buf);
+						*p = '\0';
+						p += r - 1; /* p is buf + offset + r - 1 */
+						for(r = 0; *(p - r) && *(p - r) != '\n'; r++);
+						offset = r;
+						if(r)
+							memmove(buf, p - r + 1, r);
 						break;
 					}
 				break;
