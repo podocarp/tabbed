@@ -70,6 +70,7 @@ static void expose(XEvent *e);
 static unsigned long getcolor(const char *colstr);
 static void initfont(const char *fontstr);
 static void keypress(XEvent *e);
+static void killclient(const Arg *arg);
 static void move(const Arg *arg);
 static void newtab(const Arg *arg);
 static void rotate(const Arg *arg);
