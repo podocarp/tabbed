@@ -17,7 +17,7 @@
 /* macros */
 #define MAX(a, b)       ((a) > (b) ? (a) : (b))
 #define LENGTH(x)       (sizeof x / sizeof x[0])
-#define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask))
+#define CLEANMASK(mask) (mask & ~(numlockmask|LockMask))
 
 enum { ColFG, ColBG, ColLast };              /* color */
 
@@ -50,12 +50,16 @@ typedef struct {
 	} font;
 } DC; /* draw context */
 
-typedef struct Client Client;
-struct Client {
+typedef struct Client {
 	char name[256];
 	struct Client *next;
 	Window win;
-};
+} Client;
+
+typedef struct Listener {
+	int fd;
+	struct Listener *next;
+} Listener;
 
 /* function declarations */
 static void cleanup(void);
@@ -209,24 +213,23 @@ keypress(XEvent *e) {
 
 void
 move(const Arg *arg) {
-
+	puts("move to nth tab");
 }
 
 void
 newtab(const Arg *arg) {
-
+	puts("opening new tab");
 }
 
 void
 rotate(const Arg *arg) {
-
+	puts("next/prev tab");
 }
 
 void
 run(void) {
 	XEvent ev;
 
-	/* main event loop, also reads status text from stdin */
 	XSync(dpy, False);
 	while(running) {
 		XNextEvent(dpy, &ev);
@@ -260,7 +263,7 @@ setup(void) {
 
 	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
 	XSelectInput(dpy, win, StructureNotifyMask|PointerMotionMask|
-			ButtonReleaseMask|ButtonPressMask|ExposureMask|
+			ButtonPressMask|ExposureMask|KeyPressMask|
 			LeaveWindowMask);
 	wmh = XAllocWMHints();
 	wmh->input = False;
