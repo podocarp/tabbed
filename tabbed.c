@@ -190,16 +190,32 @@ die(const char *errstr, ...) {
 void
 drawbar() {
 	unsigned long *col;
-	unsigned int n;
+	int n, width;
 	Client *c, *fc;
 
+	width = ww;
+	for(n = 0, fc = c = getfirsttab(); c; c = c->next, n++);
+	if(n * 200 > width) {
+		dc.w = TEXTW(after);
+		dc.x = width - dc.w;
+		drawtext(after, dc.norm);
+		width -= dc.w;
+	}
 	dc.x = 0;
-	drawtext("", dc.norm);
-	for(fc = c = getfirsttab(); c; c = c->next, n++);
-	for(c = fc; c && dc.x < ww; c = c->next) {
+	if(fc != clients) {
+		dc.w = TEXTW(before);
+		drawtext(before, dc.norm);
+		dc.x += dc.w;
+		width -= dc.w;
+	}
+	for(c = fc; c && dc.x < width; c = c->next) {
 		dc.w = tabwidth;
 		if(c == sel) {
 			col = dc.sel;
+			if(n * tabwidth > width)
+				dc.w += width % tabwidth;
+			else
+				dc.w = width - (n - 1) * 200;
 		}
 		else {
 			col = dc.norm;
@@ -292,7 +308,6 @@ getfirsttab() {
 	unsigned int n, seli;
 	Client *c, *fc;
 
-	return clients;
 	c = fc = clients;
 	for(n = 0; c; c = c->next, n++);
 	if(n * tabwidth > ww) {
