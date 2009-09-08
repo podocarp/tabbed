@@ -296,6 +296,7 @@ focus(Client *c) {
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	XSelectInput(dpy, c->win, PropertyChangeMask|StructureNotifyMask);
 	sel = c;
+	XStoreName(dpy, win, sel->name);
 	drawbar();
 }
 
@@ -671,6 +672,11 @@ setup(void) {
 			LeaveWindowMask);
 	XMapRaised(dpy, win);
 	XSetErrorHandler(xerror);
+	XClassHint class_hint;
+	XStoreName(dpy, win, "Tabbed");
+	class_hint.res_name = "Tabbed";
+	class_hint.res_class = "tabbed";
+	XSetClassHint(dpy, win, &class_hint);
 }
 
 int
@@ -727,6 +733,8 @@ updatenumlockmask(void) {
 void
 updatetitle(Client *c) {
 	gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
+	if(sel == c)
+		XStoreName(dpy, win, c->name);
 	drawbar();
 }
 
