@@ -3,13 +3,14 @@ static const char normbgcolor[]     = "#202020";
 static const char normfgcolor[]     = "#c0c0c0";
 static const char selbgcolor[]      = "#884400";
 static const char selfgcolor[]      = "#f0f0f0";
+static const int tabwidth           = 200;
 
-#define SURF "surf", "-x"
+#define EXEC "surf", "-x"
 #define MODKEY ControlMask
 Key keys[] = { \
 	/* modifier                     key        function        argument */
-	{ MODKEY|ShiftMask,             XK_Return, spawntab,       { .v = (char*[]){ SURF, NULL} } },
-	{ MODKEY|ShiftMask,             XK_t,      spawntab,       { .v = (char*[]){ SURF, NULL} } },
+	{ MODKEY|ShiftMask,             XK_Return, spawntab,       { .v = (char*[]){ EXEC, NULL} } },
+	{ MODKEY|ShiftMask,             XK_t,      spawntab,       { .v = (char*[]){ EXEC, NULL} } },
 	{ MODKEY|ShiftMask,             XK_l,      rotate,         { .i = +1 } },
 	{ MODKEY|ShiftMask,             XK_h,      rotate,         { .i = -1 } },
 	{ MODKEY,                       XK_1,      move,           { .i = 1 } },
@@ -23,4 +24,9 @@ Key keys[] = { \
 	{ MODKEY,                       XK_9,      move,           { .i = 9 } },
 	{ MODKEY,                       XK_0,      move,           { .i = 10 } },
 	{ MODKEY,                       XK_q,      killclient,     { 0 } },
+};
+
+Autostart autostarts[] = { \
+	/* function         argument */
+	{ spawntab,       { .v = (char*[]){ EXEC, NULL} } },
 };
