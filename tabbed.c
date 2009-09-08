@@ -27,7 +27,9 @@
 #define CLEANMASK(mask) (mask & ~(numlockmask|LockMask))
 #define TEXTW(x)        (textnw(x, strlen(x)) + dc.font.height)
 
-enum { ColFG, ColBG, ColLast };              /* color */
+enum { ColFG, ColBG, ColLast };                         /* color */
+enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
+enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
 
 typedef union {
 	int i;
@@ -79,6 +81,7 @@ static void autostart(void);
 static void buttonpress(XEvent *e);
 static void cleanup(void);
 static void configurenotify(XEvent *e);
+static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
@@ -88,6 +91,7 @@ static unsigned long getcolor(const char *colstr);
 static Client *getclient(Window w);
 static Client *getfirsttab();
 static Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
+static Bool isprotodel(Client *c);
 static void initfont(const char *fontstr);
 static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
@@ -100,6 +104,7 @@ static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
 static int textnw(const char *text, unsigned int len);
+static void unmanage(Client *c);
 static void unmapnotify(XEvent *e);
 static void updatenumlockmask(void);
 static void updatetitle(Client *c);
@@ -109,6 +114,7 @@ static int xerror(Display *dpy, XErrorEvent *ee);
 static int screen;
 static void (*handler[LASTEvent]) (XEvent *) = {
 	[ConfigureNotify] = configurenotify,
+	[DestroyNotify] = destroynotify,
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
 	[ButtonPress] = buttonpress,
@@ -117,6 +123,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 };
 static Display *dpy;
 static DC dc;
+static Atom wmatom[WMLast], netatom[NetLast];
 static Window root, win;
 static Bool running = True;
 static unsigned int numlockmask = 0;
@@ -178,6 +185,15 @@ configurenotify(XEvent *e) {
 }
 
 void
+destroynotify(XEvent *e) {
+	Client *c;
+	XDestroyWindowEvent *ev = &e->xdestroywindow;
+
+	if((c = getclient(ev->window)))
+		unmanage(c);
+}
+
+void
 die(const char *errstr, ...) {
 	va_list ap;
 
@@ -198,13 +214,13 @@ drawbar() {
 	if(n * 200 > width) {
 		dc.w = TEXTW(after);
 		dc.x = width - dc.w;
-		drawtext(after, dc.norm);
+		drawtext(after, dc.sel);
 		width -= dc.w;
 	}
 	dc.x = 0;
 	if(fc != clients) {
 		dc.w = TEXTW(before);
-		drawtext(before, dc.norm);
+		drawtext(before, dc.sel);
 		dc.x += dc.w;
 		width -= dc.w;
 	}
@@ -278,7 +294,7 @@ focus(Client *c) {
 		return;
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-	XSelectInput(dpy, c->win, PropertyChangeMask);
+	XSelectInput(dpy, c->win, PropertyChangeMask|StructureNotifyMask);
 	sel = c;
 	drawbar();
 }
@@ -383,6 +399,21 @@ initfont(const char *fontstr) {
 	dc.font.height = dc.font.ascent + dc.font.descent;
 }
 
+Bool
+isprotodel(Client *c) {
+	int i, n;
+	Atom *protocols;
+	Bool ret = False;
+
+	if(XGetWMProtocols(dpy, c->win, &protocols, &n)) {
+		for(i = 0; !ret && i < n; i++)
+			if(protocols[i] == wmatom[WMDelete])
+				ret = True;
+		XFree(protocols);
+	}
+	return ret;
+}
+
 void
 keypress(XEvent *e) {
 	unsigned int i;
@@ -400,7 +431,21 @@ keypress(XEvent *e) {
 
 void
 killclient(const Arg *arg) {
-	puts("close a window");
+	XEvent ev;
+
+	if(!sel)
+		return;
+	if(isprotodel(sel)) {
+		ev.type = ClientMessage;
+		ev.xclient.window = sel->win;
+		ev.xclient.message_type = wmatom[WMProtocols];
+		ev.xclient.format = 32;
+		ev.xclient.data.l[0] = wmatom[WMDelete];
+		ev.xclient.data.l[1] = CurrentTime;
+		XSendEvent(dpy, sel->win, False, NoEventMask, &ev);
+	}
+	else
+		XKillClient(dpy, sel->win);
 }
 
 void
@@ -600,7 +645,12 @@ setup(void) {
 	root = RootWindow(dpy, screen);
 	initfont(font);
 	bh = dc.h = dc.font.height + 2;
-
+	/* init atoms */
+	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
+	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
+	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
 	/* init appearance */
 	wx = 0;
 	wy = 0;
@@ -636,7 +686,27 @@ textnw(const char *text, unsigned int len) {
 
 void
 unmapnotify(XEvent *e) {
-	running = False;
+	Client *c;
+	XUnmapEvent *ev = &e->xunmap;
+
+	if((c = getclient(ev->window)))
+		unmanage(c);
+	else if(ev->window == win)
+		running = False;
+}
+
+void
+unmanage(Client *c) {
+	Client *pc;
+
+	for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
+	if(pc)
+		pc->next = c->next;
+	else
+		pc = clients = pc->next;
+	free(c);
+	XSync(dpy, False);
+	focus(pc);
 }
 
 void
