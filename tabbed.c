@@ -76,12 +76,14 @@ typedef struct Listener {
 
 /* function declarations */
 static void autostart(void);
+static void buttonpress(XEvent *e);
 static void cleanup(void);
 static void configurenotify(XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
 static void expose(XEvent *e);
+static void focus(Client *c);
 static unsigned long getcolor(const char *colstr);
 static Client *getclient(Window w);
 static Client *getfirsttab();
@@ -109,6 +111,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[ConfigureNotify] = configurenotify,
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
+	[ButtonPress] = buttonpress,
 	[KeyPress] = keypress,
 	[Expose] = expose,
 };
@@ -130,6 +133,20 @@ autostart() {
 
 	for(i = 0; i < LENGTH(autostarts); i++)
 		autostarts[i].func(&(autostarts[i].arg));
+}
+
+void
+buttonpress(XEvent *e) {
+	int i;
+	Client *c;
+	XButtonPressedEvent *ev = &e->xbutton;
+
+	for(i = 0, c = getfirsttab(); c; c = c->next, i++) {
+		if(i * tabwidth < ev->x && (i + 1) * tabwidth > ev->x) {
+			focus(c);
+			break;
+		}
+	}
 }
 
 void
