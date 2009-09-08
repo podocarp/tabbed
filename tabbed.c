@@ -46,11 +46,6 @@ typedef struct {
 } Key;
 
 typedef struct {
-	void (*func)(const Arg *);
-	const Arg arg;
-} Autostart;
-
-typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
@@ -78,7 +73,6 @@ typedef struct Listener {
 } Listener;
 
 /* function declarations */
-static void autostart(void);
 static void buttonpress(XEvent *e);
 static void cleanup(void);
 static void configurenotify(XEvent *e);
@@ -134,14 +128,6 @@ static Listener *listeners;
 static Bool badwindow = False;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-
-void
-autostart() {
-	int i;
-
-	for(i = 0; i < LENGTH(autostarts); i++)
-		autostarts[i].func(&(autostarts[i].arg));
-}
 
 void
 buttonpress(XEvent *e) {
@@ -685,6 +671,8 @@ setup(void) {
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
+	listeners = emallocz(sizeof(Listener));
+	listeners->fd = STDIN_FILENO;
 }
 
 int
@@ -772,7 +760,6 @@ main(int argc, char *argv[]) {
 	if(!(dpy = XOpenDisplay(0)))
 		die("tabbed: cannot open display\n");
 	setup();
-	autostart();
 	run();
 	/*dummys*/
 	cleanup();

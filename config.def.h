@@ -27,8 +27,3 @@ Key keys[] = { \
 	{ MODKEY,                       XK_0,      move,           { .i = 10 } },
 	{ MODKEY,                       XK_q,      killclient,     { 0 } },
 };
-
-Autostart autostarts[] = { \
-	/* function         argument */
-	{ spawntab,       { .v = (char*[]){ EXEC, NULL} } },
-};
