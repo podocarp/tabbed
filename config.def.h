@@ -4,6 +4,8 @@ static const char normfgcolor[]     = "#c0c0c0";
 static const char selbgcolor[]      = "#884400";
 static const char selfgcolor[]      = "#f0f0f0";
 static const int tabwidth           = 200;
+static const char before[]          = "<";
+static const char after[]           = ">";
 
 #define EXEC "surf", "-x"
 #define MODKEY ControlMask

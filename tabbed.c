@@ -69,6 +69,7 @@ typedef struct Client {
 	char name[256];
 	struct Client *next;
 	Window win;
+	int tabx;
 } Client;
 
 typedef struct Listener {
@@ -148,8 +149,11 @@ buttonpress(XEvent *e) {
 	Client *c;
 	XButtonPressedEvent *ev = &e->xbutton;
 
-	for(i = 0, c = getfirsttab(); c; c = c->next, i++) {
-		if(i * tabwidth < ev->x && (i + 1) * tabwidth > ev->x) {
+	c = getfirsttab();
+	if(c != clients && ev->x < TEXTW(before))
+		return;
+	for(i = 0; c; c = c->next, i++) {
+		if(c->tabx > ev->x) {
 			focus(c);
 			break;
 		}
@@ -210,6 +214,8 @@ drawbar() {
 	Client *c, *fc;
 
 	width = ww;
+	for(c = clients; c; c = c->next)
+		c->tabx = -1;
 	for(n = 0, fc = c = getfirsttab(); c; c = c->next, n++);
 	if(n * 200 > width) {
 		dc.w = TEXTW(after);
@@ -238,6 +244,7 @@ drawbar() {
 		}
 		drawtext(c->name, col);
 		dc.x += dc.w;
+		c->tabx = dc.x;
 	}
 	XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, 0);
 	XSync(dpy, False);
@@ -607,6 +614,7 @@ run(void) {
 			case -1:
 				perror("tabbed: fd error");
 			case 0:
+				close(l->fd);
 				if(listeners == l)
 					listeners = l->next;
 				else {
@@ -674,8 +682,8 @@ setup(void) {
 	XSetErrorHandler(xerror);
 	XClassHint class_hint;
 	XStoreName(dpy, win, "Tabbed");
-	class_hint.res_name = "Tabbed";
-	class_hint.res_class = "tabbed";
+	class_hint.res_name = "tabbed";
+	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
 }
 
@@ -709,10 +717,10 @@ unmanage(Client *c) {
 	if(pc)
 		pc->next = c->next;
 	else
-		pc = clients = pc->next;
+		pc = clients = c->next;
+	focus(pc);
 	free(c);
 	XSync(dpy, False);
-	focus(pc);
 }
 
 void
