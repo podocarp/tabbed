@@ -83,6 +83,7 @@ static void run(void);
 static void setup(void);
 static int textnw(const char *text, unsigned int len);
 static void updatenumlockmask(void);
+static int xerror(Display *dpy, XErrorEvent *ee);
 
 /* variables */
 static int screen;
@@ -261,8 +262,9 @@ spawntab(const Arg *arg) {
 }
 
 void
-reparent(Window win) {
-	puts("reparent window");
+reparent(Window w) {
+	XSync(dpy, False);
+	XReparentWindow(dpy, w, win, 0, 0);
 }
 
 void
@@ -361,6 +363,7 @@ setup(void) {
 			ButtonPressMask|ExposureMask|KeyPressMask|
 			LeaveWindowMask);
 	XMapRaised(dpy, win);
+	XSetErrorHandler(xerror);
 }
 
 int
@@ -392,6 +395,18 @@ updatenumlockmask(void) {
 			   == XKeysymToKeycode(dpy, XK_Num_Lock))
 				numlockmask = (1 << i);
 	XFreeModifiermap(modmap);
+}
+
+/* There's no way to check accesses to destroyed windows, thus those cases are
+ * ignored (especially on UnmapNotify's).  Other types of errors call Xlibs
+ * default error handler, which may call exit.  */
+int
+xerror(Display *dpy, XErrorEvent *ee) {
+	if(ee->error_code == BadWindow)
+		return 0;
+	die("dwm: fatal error: request code=%d, error code=%d\n",
+			ee->request_code, ee->error_code);
+	return 1;
 }
 
 int
