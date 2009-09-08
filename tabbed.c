@@ -77,6 +77,7 @@ static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
 static void move(const Arg *arg);
 static void spawntab(const Arg *arg);
+static void reparent(Window win);
 static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
@@ -260,6 +261,11 @@ spawntab(const Arg *arg) {
 }
 
 void
+reparent(Window win) {
+	puts("reparent window");
+}
+
+void
 rotate(const Arg *arg) {
 	puts("next/prev tab");
 }
@@ -268,7 +274,7 @@ void
 run(void) {
 	char buf[32], *p;
 	fd_set rd;
-	int r, xfd, maxfd;
+	int r, xfd, maxfd, wid;
 	unsigned int offset = 0;
 	XEvent ev;
 	Listener *l, *pl;
@@ -308,8 +314,9 @@ run(void) {
 			default:
 				for(p = buf + offset; r > 0; p++, r--, offset++)
 					if(*p == '\n' || *p == '\0') {
-						printf("Got somthing: %s\n", buf);
 						*p = '\0';
+						if((wid = atoi(buf)))
+							reparent((Window)wid);
 						p += r - 1; /* p is buf + offset + r - 1 */
 						for(r = 0; *(p - r) && *(p - r) != '\n'; r++);
 						offset = r;
