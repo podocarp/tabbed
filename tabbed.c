@@ -123,7 +123,7 @@ static Window root, win;
 static Bool running = True;
 static unsigned int numlockmask = 0;
 static unsigned bh, wx, wy, ww, wh;
-static Client *clients, *sel;
+static Client *clients = NULL, *sel = NULL;
 static Listener *listeners;
 static Bool badwindow = False;
 /* configuration, allows nested code to access above variables */
@@ -199,6 +199,12 @@ drawbar() {
 	int n, width;
 	Client *c, *fc;
 
+	if(!clients) {
+		dc.x = 0;
+		dc.w = ww;
+		drawtext("Tabbed", dc.norm);
+		return;
+	}
 	width = ww;
 	for(c = clients; c; c = c->next)
 		c->tabx = -1;
@@ -283,8 +289,12 @@ expose(XEvent *e) {
 
 void
 focus(Client *c) {
-	if(!c || !clients)
+	if(!c)
+		c = clients;
+	if(!c) {
+		sel = NULL;
 		return;
+	}
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	XSelectInput(dpy, c->win, PropertyChangeMask|StructureNotifyMask);
@@ -318,6 +328,8 @@ getfirsttab() {
 	unsigned int n, seli;
 	Client *c, *fc;
 
+	if(!sel)
+		return NULL;
 	c = fc = clients;
 	for(n = 0; c; c = c->next, n++);
 	if(n * tabwidth > ww) {
@@ -580,6 +592,7 @@ run(void) {
 	XSync(dpy, False);
 	xfd = ConnectionNumber(dpy);
 	buf[LENGTH(buf) - 1] = '\0'; /* 0-terminator is never touched */
+	drawbar();
 	while(running) {
 		FD_ZERO(&rd);
 		maxfd = xfd;
@@ -701,12 +714,15 @@ void
 unmanage(Client *c) {
 	Client *pc;
 
-	for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
-	if(pc)
+	focus(NULL);
+	if(!clients)
+		return;
+	else if(c == clients)
+		clients = c->next;
+	else {
+		for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
 		pc->next = c->next;
-	else
-		pc = clients = c->next;
-	focus(pc);
+	}
 	free(c);
 	XSync(dpy, False);
 }
