@@ -744,7 +744,7 @@ xerror(Display *dpy, XErrorEvent *ee) {
 		puts("badwindow");
 		return 0;
 	}
-	die("dwm: fatal error: request code=%d, error code=%d\n",
+	die("tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return 1;
 }
