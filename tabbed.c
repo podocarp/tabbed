@@ -67,11 +67,6 @@ typedef struct Client {
 	int tabx;
 } Client;
 
-typedef struct Listener {
-	int fd;
-	struct Listener *next;
-} Listener;
-
 /* function declarations */
 static void buttonpress(XEvent *e);
 static void cleanup(void);
@@ -91,8 +86,9 @@ static void initfont(const char *fontstr);
 static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
 static void move(const Arg *arg);
-static void spawntab(const Arg *arg);
+static void spawn(const Arg *arg);
 static void manage(Window win);
+static void maprequest(XEvent *e);
 static void propertynotify(XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
@@ -112,6 +108,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[DestroyNotify] = destroynotify,
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
+	[MapRequest] = maprequest,
 	[ButtonPress] = buttonpress,
 	[KeyPress] = keypress,
 	[Expose] = expose,
@@ -124,8 +121,8 @@ static Bool running = True;
 static unsigned int numlockmask = 0;
 static unsigned bh, wx, wy, ww, wh;
 static Client *clients = NULL, *sel = NULL;
-static Listener *listeners;
 static Bool badwindow = False;
+static int (*xerrorxlib)(Display *, XErrorEvent *);
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -202,7 +199,9 @@ drawbar() {
 	if(!clients) {
 		dc.x = 0;
 		dc.w = ww;
-		drawtext("Tabbed", dc.norm);
+		drawtext("tabbed-"VERSION, dc.norm);
+		XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, 0);
+		XSync(dpy, False);
 		return;
 	}
 	width = ww;
@@ -275,7 +274,7 @@ emallocz(size_t size) {
 	void *p;
 
 	if(!(p = calloc(1, size)))
-		die(0, "Cannot Malloc");
+		die(0, "tabbed: cannot malloc");
 	return p;
 }
 
@@ -470,32 +469,18 @@ sigchld(int signal) {
 	while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
-void
-spawntab(const Arg *arg) {
-	int fd[2];
-	Listener *l;
 
-	if(pipe(fd)) {
-		perror("tabbed: pipe failed");
-		return;
-	}
-	l = emallocz(sizeof(Listener));
-	l->fd = fd[0];
-	l->next = listeners;
-	listeners = l;
-	signal(SIGCHLD, sigchld);
+void
+spawn(const Arg *arg) {
 	if(fork() == 0) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
 		setsid();
-		dup2(fd[1], STDOUT_FILENO);
-		close(fd[0]);
 		execvp(((char **)arg->v)[0], (char **)arg->v);
-		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
+		fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
 		perror(" failed");
 		exit(0);
 	}
-	close(fd[1]);
 }
 
 void
@@ -528,6 +513,18 @@ manage(Window w) {
 		resize(c, ww, wh - bh);
 		drawbar();
 	}
+}
+
+void maprequest(XEvent *e) {
+	static XWindowAttributes wa;
+	XMapRequestEvent *ev = &e->xmaprequest;
+
+	if(!XGetWindowAttributes(dpy, ev->window, &wa))
+		return;
+	if(wa.override_redirect)
+		return;
+	if(!getclient(ev->window))
+		manage(ev->window);
 }
 
 void
@@ -581,68 +578,15 @@ rotate(const Arg *arg) {
 
 void
 run(void) {
-	char buf[32], *p;
-	fd_set rd;
-	int r, xfd, maxfd, wid;
-	unsigned int offset = 0;
 	XEvent ev;
-	Listener *l, *pl;
 
 	/* main event loop, also reads xids from stdin */
 	XSync(dpy, False);
-	xfd = ConnectionNumber(dpy);
-	buf[LENGTH(buf) - 1] = '\0'; /* 0-terminator is never touched */
 	drawbar();
 	while(running) {
-		FD_ZERO(&rd);
-		maxfd = xfd;
-		FD_SET(xfd, &rd);
-		for(l = listeners; l; l = l->next) {
-			maxfd = MAX(maxfd, l->fd);
-			FD_SET(l->fd, &rd);
-		}
-		if(select(maxfd + 1, &rd, NULL, NULL, NULL) == -1) {
-			if(errno == EINTR)
-				continue;
-			die("select failed\n");
-		}
-		for(l = listeners; l; l = l->next) {
-			if(!FD_ISSET(l->fd, &rd))
-				continue;
-			switch((r = read(l->fd, buf + offset, LENGTH(buf) - 1 - offset))) {
-			case -1:
-				perror("tabbed: fd error");
-			case 0:
-				close(l->fd);
-				if(listeners == l)
-					listeners = l->next;
-				else {
-					for(pl = listeners; pl->next != l ; pl = pl->next);
-					pl->next = l->next;
-				}
-				free(l);
-				break;
-			default:
-				for(p = buf + offset; r > 0; p++, r--, offset++)
-					if(*p == '\n' || *p == '\0') {
-						*p = '\0';
-						if((wid = atoi(buf)))
-							manage((Window)wid);
-						p += r - 1; /* p is buf + offset + r - 1 */
-						for(r = 0; *(p - r) && *(p - r) != '\n'; r++);
-						offset = r;
-						if(r)
-							memmove(buf, p - r + 1, r);
-						break;
-					}
-				break;
-			}
-		}
-		while(XPending(dpy)) {
-			XNextEvent(dpy, &ev);
-			if(handler[ev.type])
-				(handler[ev.type])(&ev); /* call handler */
-		}
+		XNextEvent(dpy, &ev);
+		if(handler[ev.type])
+			(handler[ev.type])(&ev); /* call handler */
 	}
 }
 
@@ -678,14 +622,12 @@ setup(void) {
 			ButtonPressMask|ExposureMask|KeyPressMask|
 			LeaveWindowMask);
 	XMapRaised(dpy, win);
-	XSetErrorHandler(xerror);
+	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
 	XStoreName(dpy, win, "Tabbed");
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
-	listeners = emallocz(sizeof(Listener));
-	listeners->fd = STDIN_FILENO;
 }
 
 int
@@ -760,9 +702,10 @@ xerror(Display *dpy, XErrorEvent *ee) {
 		puts("badwindow");
 		return 0;
 	}
-	die("tabbed: fatal error: request code=%d, error code=%d\n",
+	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
-	return 1;
+	return xerrorxlib(dpy, ee); /* may call exit */
+
 }
 
 int
@@ -770,17 +713,16 @@ main(int argc, char *argv[]) {
 	if(argc == 2 && !strcmp("-v", argv[1]))
 		die("tabbed-"VERSION", © 2006-2008 surf engineers, see LICENSE for details\n");
 	else if(argc != 1)
-		die("usage: tabbed [surf-options]\n");
+		die("usage: tabbed [-v]\n");
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "warning: no locale support\n");
 	if(!(dpy = XOpenDisplay(0)))
 		die("tabbed: cannot open display\n");
 	setup();
+	printf("%i\n", (int)win);
+	fflush(NULL);
 	run();
-	/*dummys*/
 	cleanup();
 	XCloseDisplay(dpy);
 	return 0;
-	textnw(" ", 1);
-	updatenumlockmask();
 }
