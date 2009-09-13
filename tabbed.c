@@ -21,15 +21,25 @@
 #include <errno.h>
 
 /* macros */
-#define MAX(a, b)       ((a) > (b) ? (a) : (b))
-#define MIN(a, b)       ((a) < (b) ? (a) : (b))
-#define LENGTH(x)       (sizeof x / sizeof x[0])
-#define CLEANMASK(mask) (mask & ~(numlockmask|LockMask))
-#define TEXTW(x)        (textnw(x, strlen(x)) + dc.font.height)
+#define MAX(a, b)                ((a) > (b) ? (a) : (b))
+#define MIN(a, b)                ((a) < (b) ? (a) : (b))
+#define LENGTH(x)                (sizeof x / sizeof x[0])
+#define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
+#define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
+#define XEMBED_EMBEDDED_NOTIFY   0
 
 enum { ColFG, ColBG, ColLast };                         /* color */
 enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
 enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
+ /* XEMBED messages */
+enum { XembNotify, XembWinAct, XembWinDeact, XembReqFoc,
+	XembFocIn, XembFocOut, XembFocNext, XembFoxPrev,
+XEMBED_MODALITY_ON = 10,
+XEMBED_MODALITY_OFF = 11,
+XEMBED_REGISTER_ACCELERATOR = 12,
+XEMBED_UNREGISTER_ACCELERATOR = 13,
+XEMBED_ACTIVATE_ACCELERATOR = 14, 
+};
 
 typedef union {
 	int i;
@@ -70,6 +80,7 @@ typedef struct Client {
 /* function declarations */
 static void buttonpress(XEvent *e);
 static void cleanup(void);
+static void clientmessage(XEvent *e);
 static void configurenotify(XEvent *e);
 static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
@@ -112,10 +123,11 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
 	[KeyPress] = keypress,
 	[Expose] = expose,
+	[ClientMessage] = clientmessage,
 };
 static Display *dpy;
 static DC dc;
-static Atom wmatom[WMLast], netatom[NetLast];
+static Atom wmatom[WMLast], netatom[NetLast], xembedatom;
 static Window root, win;
 static Bool running = True;
 static unsigned int numlockmask = 0;
@@ -149,12 +161,23 @@ cleanup(void) {
 		XFreeFontSet(dpy, dc.font.set);
 	else
 		XFreeFont(dpy, dc.font.xfont);
+	puts("aaa");
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
 	XDestroyWindow(dpy, win);
 	XSync(dpy, False);
 }
 
+void
+clientmessage(XEvent *e) {
+	XClientMessageEvent *ev = &e->xclient;
+
+	if(ev->message_type == xembedatom) {
+		puts("message!");
+		printf("%ld %ld", ev->data.l[0], ev->data.l[1]);
+		puts("");
+	}
+}
 void
 configurenotify(XEvent *e) {
 	XConfigureEvent *ev = &e->xconfigure;
@@ -477,7 +500,7 @@ spawn(const Arg *arg) {
 			close(ConnectionNumber(dpy));
 		setsid();
 		execvp(((char **)arg->v)[0], (char **)arg->v);
-		fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
+		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
 		perror(" failed");
 		exit(0);
 	}
@@ -491,9 +514,12 @@ manage(Window w) {
 		unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
 		KeyCode code;
 		Client *c;
+		XEvent e;
 
-		XSync(dpy, False);
+		XSelectInput(dpy, w, StructureNotifyMask | PropertyChangeMask);
+		XWithdrawWindow(dpy, w, 0);
 		XReparentWindow(dpy, w, win, 0, bh);
+		XSync(dpy, False);
 		if(badwindow) {
 			badwindow = False;
 			return;
@@ -512,6 +538,17 @@ manage(Window w) {
 		updatetitle(c);
 		resize(c, ww, wh - bh);
 		drawbar();
+		XMapRaised(dpy, w);
+		e.xclient.window = w;
+		e.xclient.type = ClientMessage;
+		e.xclient.message_type = xembedatom;
+		e.xclient.format = 32;
+		e.xclient.data.l[0] = CurrentTime;
+		e.xclient.data.l[1] = XEMBED_EMBEDDED_NOTIFY;
+		e.xclient.data.l[2] = 0;
+		e.xclient.data.l[3] = win;
+		e.xclient.data.l[4] = 0;
+		XSendEvent(dpy, root, False, NoEventMask, &e);
 	}
 }
 
@@ -603,6 +640,7 @@ setup(void) {
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
 	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
 	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+	xembedatom = XInternAtom(dpy, "_XEMBED", False);
 	/* init appearance */
 	wx = 0;
 	wy = 0;
@@ -620,7 +658,7 @@ setup(void) {
 	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
 	XSelectInput(dpy, win, StructureNotifyMask|PointerMotionMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
-			LeaveWindowMask);
+			LeaveWindowMask|SubstructureRedirectMask);
 	XMapRaised(dpy, win);
 	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
@@ -710,10 +748,14 @@ xerror(Display *dpy, XErrorEvent *ee) {
 
 int
 main(int argc, char *argv[]) {
+	int detach = 0;
+
 	if(argc == 2 && !strcmp("-v", argv[1]))
 		die("tabbed-"VERSION", © 2006-2008 surf engineers, see LICENSE for details\n");
+	else if(argc == 2 && strcmp("-d", argv[1]))
+		detach = 1;
 	else if(argc != 1)
-		die("usage: tabbed [-v]\n");
+		die("usage: tabbed [-d] [-v]\n");
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "warning: no locale support\n");
 	if(!(dpy = XOpenDisplay(0)))
@@ -721,8 +763,13 @@ main(int argc, char *argv[]) {
 	setup();
 	printf("%i\n", (int)win);
 	fflush(NULL);
+	if(detach && fork() != 0) {
+		if(dpy)
+			close(ConnectionNumber(dpy));
+		return EXIT_SUCCESS;
+	}
 	run();
 	cleanup();
 	XCloseDisplay(dpy);
-	return 0;
+	return EXIT_SUCCESS;
 }
