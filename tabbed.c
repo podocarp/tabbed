@@ -325,7 +325,7 @@ focus(Client *c) {
 		return;
 	}
 	XRaiseWindow(dpy, c->win);
-	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+//	XSetInputFocus(dpy, c->win, RevertToNone, CurrentTime);
 	XSelectInput(dpy, c->win, PropertyChangeMask|StructureNotifyMask);
 	sel = c;
 	XStoreName(dpy, win, sel->name);
@@ -663,7 +663,7 @@ setup(void) {
 	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
 	XSelectInput(dpy, win, PointerMotionMask|SubstructureNotifyMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
-			LeaveWindowMask|SubstructureRedirectMask);
+			LeaveWindowMask|StructureNotifyMask);
 	XMapRaised(dpy, win);
 	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
