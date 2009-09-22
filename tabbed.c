@@ -772,6 +772,7 @@ main(int argc, char *argv[]) {
 			close(ConnectionNumber(dpy));
 		return EXIT_SUCCESS;
 	}
+	fclose(stdout);
 	run();
 	cleanup();
 	XCloseDisplay(dpy);
