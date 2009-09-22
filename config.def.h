@@ -11,8 +11,8 @@ static const char after[]           = ">";
 #define MODKEY ControlMask
 Key keys[] = { \
 	/* modifier                     key        function        argument */
-	{ MODKEY|ShiftMask,             XK_Return, spawntab,       { .v = (char*[]){ EXEC, NULL} } },
-	{ MODKEY|ShiftMask,             XK_t,      spawntab,       { .v = (char*[]){ EXEC, NULL} } },
+	{ MODKEY|ShiftMask,             XK_Return, spawn,       { .v = (char*[]){ EXEC, NULL} } },
+	{ MODKEY|ShiftMask,             XK_t,      spawn,       { .v = (char*[]){ EXEC, NULL} } },
 	{ MODKEY|ShiftMask,             XK_l,      rotate,         { .i = +1 } },
 	{ MODKEY|ShiftMask,             XK_h,      rotate,         { .i = -1 } },
 	{ MODKEY,                       XK_1,      move,           { .i = 1 } },
