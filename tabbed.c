@@ -80,6 +80,7 @@ static void buttonpress(XEvent *e);
 static void cleanup(void);
 static void clientmessage(XEvent *e);
 static void configurenotify(XEvent *e);
+static void createnotify(XEvent *e);
 static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
@@ -99,6 +100,7 @@ static void spawn(const Arg *arg);
 static void manage(Window win);
 static void maprequest(XEvent *e);
 static void propertynotify(XEvent *e);
+static void reparentnotify(XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
@@ -122,6 +124,8 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[KeyPress] = keypress,
 	[Expose] = expose,
 	[ClientMessage] = clientmessage,
+	[CreateNotify] = createnotify,
+	[ReparentNotify] = reparentnotify,
 };
 static Display *dpy;
 static DC dc;
@@ -159,7 +163,6 @@ cleanup(void) {
 		XFreeFontSet(dpy, dc.font.set);
 	else
 		XFreeFont(dpy, dc.font.xfont);
-	puts("aaa");
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
 	XDestroyWindow(dpy, win);
@@ -171,9 +174,7 @@ clientmessage(XEvent *e) {
 	XClientMessageEvent *ev = &e->xclient;
 
 	if(ev->message_type == xembedatom) {
-		puts("message!");
-		printf("%ld %ld", ev->data.l[0], ev->data.l[1]);
-		puts("");
+		printf("%ld %ld %ld %ld %ld\n", ev->data.l[0], ev->data.l[1], ev->data.l[2], ev->data.l[3], ev->data.l[4]);
 	}
 }
 void
@@ -190,6 +191,14 @@ configurenotify(XEvent *e) {
 			resize(c, ww, wh - bh);
 		XSync(dpy, False);
 	}
+}
+
+void
+createnotify(XEvent *e) {
+	XCreateWindowEvent *ev = &e->xcreatewindow;
+
+	if(!getclient(ev->window))
+		manage(ev->window);
 }
 
 void
@@ -514,7 +523,7 @@ manage(Window w) {
 		Client *c;
 		XEvent e;
 
-		XSelectInput(dpy, w, StructureNotifyMask | PropertyChangeMask);
+		XSelectInput(dpy, w, StructureNotifyMask|PropertyChangeMask);
 		XWithdrawWindow(dpy, w, 0);
 		XReparentWindow(dpy, w, win, 0, bh);
 		XSync(dpy, False);
@@ -551,13 +560,8 @@ manage(Window w) {
 }
 
 void maprequest(XEvent *e) {
-	static XWindowAttributes wa;
 	XMapRequestEvent *ev = &e->xmaprequest;
 
-	if(!XGetWindowAttributes(dpy, ev->window, &wa))
-		return;
-	if(wa.override_redirect)
-		return;
 	if(!getclient(ev->window))
 		manage(ev->window);
 }
@@ -571,6 +575,9 @@ propertynotify(XEvent *e) {
 			&& (c = getclient(ev->window))) {
 		updatetitle(c);
 	}
+}
+
+void reparentnotify(XEvent *e) {
 }
 
 void
@@ -654,7 +661,7 @@ setup(void) {
 		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
 	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
-	XSelectInput(dpy, win, StructureNotifyMask|PointerMotionMask|
+	XSelectInput(dpy, win, PointerMotionMask|SubstructureNotifyMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
 			LeaveWindowMask|SubstructureRedirectMask);
 	XMapRaised(dpy, win);
@@ -735,7 +742,6 @@ int
 xerror(Display *dpy, XErrorEvent *ee) {
 	if(ee->error_code == BadWindow) {
 		badwindow = True;
-		puts("badwindow");
 		return 0;
 	}
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
@@ -749,8 +755,8 @@ main(int argc, char *argv[]) {
 	int detach = 0;
 
 	if(argc == 2 && !strcmp("-v", argv[1]))
-		die("tabbed-"VERSION", © 2006-2008 surf engineers, see LICENSE for details\n");
-	else if(argc == 2 && strcmp("-d", argv[1]))
+		die("tabbed-"VERSION", © 2006-2008 tabbed engineers, see LICENSE for details\n");
+	else if(argc == 2 && strcmp("-d", argv[1]) == 0)
 		detach = 1;
 	else if(argc != 1)
 		die("usage: tabbed [-d] [-v]\n");
