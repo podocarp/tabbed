@@ -7,12 +7,12 @@ static const int tabwidth           = 200;
 static const char before[]          = "<";
 static const char after[]           = ">";
 
-#define EXEC "surf", "-x"
+#define EXEC "surf", "-e", winid
 #define MODKEY ControlMask
-Key keys[] = { \
+static Key keys[] = { \
 	/* modifier                     key        function        argument */
-	{ MODKEY|ShiftMask,             XK_Return, spawn,       { .v = (char*[]){ EXEC, NULL} } },
-	{ MODKEY|ShiftMask,             XK_t,      spawn,       { .v = (char*[]){ EXEC, NULL} } },
+	{ MODKEY|ShiftMask,             XK_Return, spawn,          { .v = (char*[]){ EXEC, NULL} } },
+	{ MODKEY|ShiftMask,             XK_t,      spawn,          { .v = (char*[]){ EXEC, NULL} } },
 	{ MODKEY|ShiftMask,             XK_l,      rotate,         { .i = +1 } },
 	{ MODKEY|ShiftMask,             XK_h,      rotate,         { .i = -1 } },
 	{ MODKEY,                       XK_1,      move,           { .i = 1 } },

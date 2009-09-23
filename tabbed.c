@@ -152,6 +152,7 @@ static Atom wmatom[WMLast], netatom[NetLast], xembedatom;
 static Window root, win;
 static Client *clients = NULL, *sel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
+static char winid[128];
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -686,6 +687,7 @@ setup(void) {
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
+	snprintf(winid, LENGTH(winid), "%u", (int)win);
 }
 
 void
