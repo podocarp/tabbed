@@ -253,7 +253,7 @@ drawbar() {
 	for(c = clients; c; c = c->next)
 		c->tabx = -1;
 	for(n = 0, fc = c = getfirsttab(); c; c = c->next, n++);
-	if(n * 200 > width) {
+	if(n * tabwidth > width) {
 		dc.w = TEXTW(after);
 		dc.x = width - dc.w;
 		drawtext(after, dc.sel);
@@ -273,7 +273,7 @@ drawbar() {
 			if(n * tabwidth > width)
 				dc.w += width % tabwidth;
 			else
-				dc.w = width - (n - 1) * 200;
+				dc.w = width - (n - 1) * tabwidth;
 		}
 		else {
 			col = dc.norm;
