@@ -97,27 +97,29 @@ static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
+static void *emallocz(size_t size);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
 static void focusin(XEvent *e);
-static unsigned long getcolor(const char *colstr);
 static Client *getclient(Window w);
+static unsigned long getcolor(const char *colstr);
 static Client *getfirsttab();
 static Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
-static Bool isprotodel(Client *c);
 static void initfont(const char *fontstr);
+static Bool isprotodel(Client *c);
 static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
-static void move(const Arg *arg);
-static void spawn(const Arg *arg);
 static void manage(Window win);
+static void move(const Arg *arg);
 static void propertynotify(XEvent *e);
 static void reparentnotify(XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
+static void sigchld(int signal);
+static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
 static void unmanage(Client *c);
 static void unmapnotify(XEvent *e);
@@ -128,28 +130,27 @@ static int xerror(Display *dpy, XErrorEvent *ee);
 /* variables */
 static int screen;
 static void (*handler[LASTEvent]) (XEvent *) = {
-	[ConfigureNotify] = configurenotify,
-	[DestroyNotify] = destroynotify,
-	[PropertyNotify] = propertynotify,
-	[UnmapNotify] = unmapnotify,
 	[ButtonPress] = buttonpress,
-	[KeyPress] = keypress,
-	[Expose] = expose,
 	[ClientMessage] = clientmessage,
+	[ConfigureNotify] = configurenotify,
 	[CreateNotify] = createnotify,
-	[ReparentNotify] = reparentnotify,
+	[DestroyNotify] = destroynotify,
 	[EnterNotify] = enternotify,
+	[Expose] = expose,
 	[FocusIn] = focusin,
+	[KeyPress] = keypress,
+	[PropertyNotify] = propertynotify,
+	[ReparentNotify] = reparentnotify,
+	[UnmapNotify] = unmapnotify,
 };
+static int bh, wx, wy, ww, wh;
+static unsigned int numlockmask = 0;
+static Bool running = True, badwindow = False;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast], netatom[NetLast], xembedatom;
 static Window root, win;
-static Bool running = True;
-static unsigned int numlockmask = 0;
-static unsigned bh, wx, wy, ww, wh;
 static Client *clients = NULL, *sel = NULL;
-static Bool badwindow = False;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -322,7 +323,8 @@ emallocz(size_t size) {
 	return p;
 }
 
-void enternotify(XEvent *e) {
+void
+enternotify(XEvent *e) {
 	focus(sel);
 }
 
@@ -367,16 +369,6 @@ focusin(XEvent *e) {
 	focus(sel);
 }
 
-unsigned long
-getcolor(const char *colstr) {
-	Colormap cmap = DefaultColormap(dpy, screen);
-	XColor color;
-
-	if(!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
-		die("error, cannot allocate color '%s'\n", colstr);
-	return color.pixel;
-}
-
 Client *
 getclient(Window w) {
 	Client *c;
@@ -385,6 +377,16 @@ getclient(Window w) {
 		if(c->win == w)
 			return c;
 	return NULL;
+}
+
+unsigned long
+getcolor(const char *colstr) {
+	Colormap cmap = DefaultColormap(dpy, screen);
+	XColor color;
+
+	if(!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
+		die("error, cannot allocate color '%s'\n", colstr);
+	return color.pixel;
 }
 
 Client *
@@ -519,36 +521,6 @@ killclient(const Arg *arg) {
 }
 
 void
-move(const Arg *arg) {
-	int i;
-	Client *c;
-
-	for(i = 0, c = clients; c; c = c->next, i++) {
-		if(arg->i == i)
-			focus(c);
-	}
-}
-
-void
-sigchld(int signal) {
-	while(0 < waitpid(-1, NULL, WNOHANG));
-}
-
-
-void
-spawn(const Arg *arg) {
-	if(fork() == 0) {
-		if(dpy)
-			close(ConnectionNumber(dpy));
-		setsid();
-		execvp(((char **)arg->v)[0], (char **)arg->v);
-		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
-		perror(" failed");
-		exit(0);
-	}
-}
-
-void
 manage(Window w) {
 	updatenumlockmask();
 	{
@@ -596,6 +568,17 @@ manage(Window w) {
 }
 
 void
+move(const Arg *arg) {
+	int i;
+	Client *c;
+
+	for(i = 0, c = clients; c; c = c->next, i++) {
+		if(arg->i == i)
+			focus(c);
+	}
+}
+
+void
 propertynotify(XEvent *e) {
 	Client *c;
 	XPropertyEvent *ev = &e->xproperty;
@@ -606,7 +589,8 @@ propertynotify(XEvent *e) {
 	}
 }
 
-void reparentnotify(XEvent *e) {
+void
+reparentnotify(XEvent *e) {
 }
 
 void
@@ -663,6 +647,8 @@ run(void) {
 
 void
 setup(void) {
+	/* clean up any zombies immediately */
+	sigchld(0);
 	/* init screen */
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
@@ -702,6 +688,26 @@ setup(void) {
 	XSetClassHint(dpy, win, &class_hint);
 }
 
+void
+sigchld(int unused) {
+	if(signal(SIGCHLD, sigchld) == SIG_ERR)
+		die("Can't install SIGCHLD handler");
+	while(0 < waitpid(-1, NULL, WNOHANG));
+}
+
+void
+spawn(const Arg *arg) {
+	if(fork() == 0) {
+		if(dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		execvp(((char **)arg->v)[0], (char **)arg->v);
+		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
+		perror(" failed");
+		exit(0);
+	}
+}
+
 int
 textnw(const char *text, unsigned int len) {
 	XRectangle r;
@@ -711,17 +717,6 @@ textnw(const char *text, unsigned int len) {
 		return r.width;
 	}
 	return XTextWidth(dc.font.xfont, text, len);
-}
-
-void
-unmapnotify(XEvent *e) {
-	Client *c;
-	XUnmapEvent *ev = &e->xunmap;
-
-	if((c = getclient(ev->window)))
-		unmanage(c);
-	else if(ev->window == win)
-		running = False;
 }
 
 void
@@ -739,6 +734,17 @@ unmanage(Client *c) {
 	}
 	free(c);
 	XSync(dpy, False);
+}
+
+void
+unmapnotify(XEvent *e) {
+	Client *c;
+	XUnmapEvent *ev = &e->xunmap;
+
+	if((c = getclient(ev->window)))
+		unmanage(c);
+	else if(ev->window == win)
+		running = False;
 }
 
 void
