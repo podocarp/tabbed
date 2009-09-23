@@ -20,17 +20,6 @@
 #include <X11/Xutil.h>
 #include <errno.h>
 
-/* macros */
-#define MAX(a, b)                ((a) > (b) ? (a) : (b))
-#define MIN(a, b)                ((a) < (b) ? (a) : (b))
-#define LENGTH(x)                (sizeof x / sizeof x[0])
-#define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
-#define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
-#define XEMBED_EMBEDDED_NOTIFY   0
-
-enum { ColFG, ColBG, ColLast };                         /* color */
-enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
-enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
 /* XEMBED messages */
 #define XEMBED_EMBEDDED_NOTIFY		0
 #define XEMBED_WINDOW_ACTIVATE  	1
@@ -51,6 +40,18 @@ enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
 #define XEMBED_FOCUS_CURRENT		0
 #define XEMBED_FOCUS_FIRST 		1
 #define XEMBED_FOCUS_LAST		2
+
+/* Macros */
+#define MAX(a, b)                ((a) > (b) ? (a) : (b))
+#define MIN(a, b)                ((a) < (b) ? (a) : (b))
+#define LENGTH(x)                (sizeof x / sizeof x[0])
+#define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
+#define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
+#define XEMBED_EMBEDDED_NOTIFY   0
+
+enum { ColFG, ColBG, ColLast };                         /* color */
+enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
+enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
 
 typedef union {
 	int i;
