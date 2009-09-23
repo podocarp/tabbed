@@ -346,18 +346,18 @@ focus(Client *c) {
 	}
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-		e.xclient.window = c->win;
-		e.xclient.type = ClientMessage;
-		e.xclient.message_type = xembedatom;
-		e.xclient.format = 32;
-		e.xclient.data.l[0] = CurrentTime;
-		e.xclient.data.l[1] = XEMBED_FOCUS_IN;
-		e.xclient.data.l[2] = XEMBED_FOCUS_CURRENT;
-		e.xclient.data.l[3] = 0;
-		e.xclient.data.l[4] = 0;
-		XSendEvent(dpy, root, False, NoEventMask, &e);
-	sel = c;
+	e.xclient.window = c->win;
+	e.xclient.type = ClientMessage;
+	e.xclient.message_type = xembedatom;
+	e.xclient.format = 32;
+	e.xclient.data.l[0] = CurrentTime;
+	e.xclient.data.l[1] = XEMBED_FOCUS_IN;
+	e.xclient.data.l[2] = XEMBED_FOCUS_CURRENT;
+	e.xclient.data.l[3] = 0;
+	e.xclient.data.l[4] = 0;
+	XSendEvent(dpy, root, False, NoEventMask, &e);
 	XStoreName(dpy, win, sel->name);
+	sel = c;
 	drawbar();
 }
 
