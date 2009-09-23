@@ -31,15 +31,26 @@
 enum { ColFG, ColBG, ColLast };                         /* color */
 enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
 enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
- /* XEMBED messages */
-enum { XembNotify, XembWinAct, XembWinDeact, XembReqFoc,
-	XembFocIn, XembFocOut, XembFocNext, XembFoxPrev,
-XEMBED_MODALITY_ON = 10,
-XEMBED_MODALITY_OFF = 11,
-XEMBED_REGISTER_ACCELERATOR = 12,
-XEMBED_UNREGISTER_ACCELERATOR = 13,
-XEMBED_ACTIVATE_ACCELERATOR = 14, 
-};
+/* XEMBED messages */
+#define XEMBED_EMBEDDED_NOTIFY		0
+#define XEMBED_WINDOW_ACTIVATE  	1
+#define XEMBED_WINDOW_DEACTIVATE  	2
+#define XEMBED_REQUEST_FOCUS	 	3
+#define XEMBED_FOCUS_IN 	 	4
+#define XEMBED_FOCUS_OUT  		5
+#define XEMBED_FOCUS_NEXT 		6
+#define XEMBED_FOCUS_PREV 		7
+/* 8-9 were used for XEMBED_GRAB_KEY/XEMBED_UNGRAB_KEY */
+#define XEMBED_MODALITY_ON 		10
+#define XEMBED_MODALITY_OFF 		11
+#define XEMBED_REGISTER_ACCELERATOR     12
+#define XEMBED_UNREGISTER_ACCELERATOR   13
+#define XEMBED_ACTIVATE_ACCELERATOR     14
+
+/* Details for  XEMBED_FOCUS_IN: */
+#define XEMBED_FOCUS_CURRENT		0
+#define XEMBED_FOCUS_FIRST 		1
+#define XEMBED_FOCUS_LAST		2
 
 typedef union {
 	int i;
@@ -85,8 +96,10 @@ static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
+static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
+static void focusin(XEvent *e);
 static unsigned long getcolor(const char *colstr);
 static Client *getclient(Window w);
 static Client *getfirsttab();
@@ -98,7 +111,6 @@ static void killclient(const Arg *arg);
 static void move(const Arg *arg);
 static void spawn(const Arg *arg);
 static void manage(Window win);
-static void maprequest(XEvent *e);
 static void propertynotify(XEvent *e);
 static void reparentnotify(XEvent *e);
 static void resize(Client *c, int w, int h);
@@ -119,13 +131,14 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[DestroyNotify] = destroynotify,
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
-	[MapRequest] = maprequest,
 	[ButtonPress] = buttonpress,
 	[KeyPress] = keypress,
 	[Expose] = expose,
 	[ClientMessage] = clientmessage,
 	[CreateNotify] = createnotify,
 	[ReparentNotify] = reparentnotify,
+	[EnterNotify] = enternotify,
+	[FocusIn] = focusin,
 };
 static Display *dpy;
 static DC dc;
@@ -197,7 +210,7 @@ void
 createnotify(XEvent *e) {
 	XCreateWindowEvent *ev = &e->xcreatewindow;
 
-	if(!getclient(ev->window))
+	if(ev->window != win && !getclient(ev->window))
 		manage(ev->window);
 }
 
@@ -308,6 +321,10 @@ emallocz(size_t size) {
 	return p;
 }
 
+void enternotify(XEvent *e) {
+	focus(sel);
+}
+
 void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
@@ -318,18 +335,35 @@ expose(XEvent *e) {
 
 void
 focus(Client *c) {
+	XEvent e;
+
 	if(!c)
 		c = clients;
 	if(!c) {
 		sel = NULL;
+		XStoreName(dpy, win, "tabbed-"VERSION);
 		return;
 	}
 	XRaiseWindow(dpy, c->win);
-//	XSetInputFocus(dpy, c->win, RevertToNone, CurrentTime);
-	XSelectInput(dpy, c->win, PropertyChangeMask|StructureNotifyMask);
+	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+		e.xclient.window = c->win;
+		e.xclient.type = ClientMessage;
+		e.xclient.message_type = xembedatom;
+		e.xclient.format = 32;
+		e.xclient.data.l[0] = CurrentTime;
+		e.xclient.data.l[1] = XEMBED_FOCUS_IN;
+		e.xclient.data.l[2] = XEMBED_FOCUS_CURRENT;
+		e.xclient.data.l[3] = 0;
+		e.xclient.data.l[4] = 0;
+		XSendEvent(dpy, root, False, NoEventMask, &e);
 	sel = c;
 	XStoreName(dpy, win, sel->name);
 	drawbar();
+}
+
+void
+focusin(XEvent *e) {
+	focus(sel);
 }
 
 unsigned long
@@ -523,9 +557,9 @@ manage(Window w) {
 		Client *c;
 		XEvent e;
 
-		XSelectInput(dpy, w, StructureNotifyMask|PropertyChangeMask);
 		XWithdrawWindow(dpy, w, 0);
 		XReparentWindow(dpy, w, win, 0, bh);
+		XSelectInput(dpy, w, PropertyChangeMask|StructureNotifyMask|EnterWindowMask);
 		XSync(dpy, False);
 		if(badwindow) {
 			badwindow = False;
@@ -541,7 +575,6 @@ manage(Window w) {
 		c->next = clients;
 		c->win = w;
 		clients = c;
-		focus(c);
 		updatetitle(c);
 		resize(c, ww, wh - bh);
 		drawbar();
@@ -556,14 +589,9 @@ manage(Window w) {
 		e.xclient.data.l[3] = win;
 		e.xclient.data.l[4] = 0;
 		XSendEvent(dpy, root, False, NoEventMask, &e);
+		XSync(dpy, False);
+		focus(c);
 	}
-}
-
-void maprequest(XEvent *e) {
-	XMapRequestEvent *ev = &e->xmaprequest;
-
-	if(!getclient(ev->window))
-		manage(ev->window);
 }
 
 void
@@ -661,13 +689,13 @@ setup(void) {
 		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
 	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
-	XSelectInput(dpy, win, PointerMotionMask|SubstructureNotifyMask|
-			ButtonPressMask|ExposureMask|KeyPressMask|
-			LeaveWindowMask|StructureNotifyMask);
 	XMapRaised(dpy, win);
+	XSelectInput(dpy, win, SubstructureNotifyMask|FocusChangeMask|
+			ButtonPressMask|ExposureMask|KeyPressMask|
+			StructureNotifyMask);
 	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
-	XStoreName(dpy, win, "Tabbed");
+	XStoreName(dpy, win, "tabbed-"VERSION);
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
