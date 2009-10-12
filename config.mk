@@ -7,13 +7,9 @@ VERSION = 0.0
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/share/man
 
-GTKINC=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0)
-GTKLIB=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
-
-
 # includes and libs
-INCS = -I. -I/usr/include ${GTKINC}
-LIBS = -L/usr/lib -lc ${GTKLIB} -lgthread-2.0
+INCS = -I. -I/usr/include
+LIBS = -L/usr/lib -lc -lX11
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
