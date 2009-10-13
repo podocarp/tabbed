@@ -88,33 +88,33 @@ typedef struct Client {
 } Client;
 
 /* function declarations */
-static void buttonpress(XEvent *e);
+static void buttonpress(const XEvent *e);
 static void cleanup(void);
-static void clientmessage(XEvent *e);
-static void configurenotify(XEvent *e);
-static void configurerequest(XEvent *e);
-static void createnotify(XEvent *e);
-static void destroynotify(XEvent *e);
+static void clientmessage(const XEvent *e);
+static void configurenotify(const XEvent *e);
+static void configurerequest(const XEvent *e);
+static void createnotify(const XEvent *e);
+static void destroynotify(const XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
 static void *emallocz(size_t size);
-static void enternotify(XEvent *e);
-static void expose(XEvent *e);
+static void enternotify(const XEvent *e);
+static void expose(const XEvent *e);
 static void focus(Client *c);
-static void focusin(XEvent *e);
+static void focusin(const XEvent *e);
 static Client *getclient(Window w);
 static unsigned long getcolor(const char *colstr);
 static Client *getfirsttab();
 static Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 static void initfont(const char *fontstr);
 static Bool isprotodel(Client *c);
-static void keypress(XEvent *e);
+static void keypress(const XEvent *e);
 static void killclient(const Arg *arg);
 static void manage(Window win);
 static void move(const Arg *arg);
-static void propertynotify(XEvent *e);
-static void reparentnotify(XEvent *e);
+static void propertynotify(const XEvent *e);
+static void reparentnotify(const XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
@@ -123,14 +123,14 @@ static void sigchld(int signal);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
 static void unmanage(Client *c);
-static void unmapnotify(XEvent *e);
+static void unmapnotify(const XEvent *e);
 static void updatenumlockmask(void);
 static void updatetitle(Client *c);
 static int xerror(Display *dpy, XErrorEvent *ee);
 
 /* variables */
 static int screen;
-static void (*handler[LASTEvent]) (XEvent *) = {
+static void (*handler[LASTEvent]) (const XEvent *) = {
 	[ButtonPress] = buttonpress,
 	[ClientMessage] = clientmessage,
 	[ConfigureNotify] = configurenotify,
@@ -159,10 +159,10 @@ static char winid[64];
 #include "config.h"
 
 void
-buttonpress(XEvent *e) {
+buttonpress(const XEvent *e) {
+	const XButtonPressedEvent *ev = &e->xbutton;
 	int i;
 	Client *c;
-	XButtonPressedEvent *ev = &e->xbutton;
 
 	c = getfirsttab();
 	if(c != clients && ev->x < TEXTW(before))
@@ -188,8 +188,8 @@ cleanup(void) {
 }
 
 void
-clientmessage(XEvent *e) {
-	XClientMessageEvent *ev = &e->xclient;
+clientmessage(const XEvent *e) {
+	const XClientMessageEvent *ev = &e->xclient;
 
 	if(ev->message_type == xembedatom) {
 		printf("%ld %ld %ld %ld %ld\n", ev->data.l[0], ev->data.l[1], ev->data.l[2], ev->data.l[3], ev->data.l[4]);
@@ -197,8 +197,8 @@ clientmessage(XEvent *e) {
 }
 
 void
-configurenotify(XEvent *e) {
-	XConfigureEvent *ev = &e->xconfigure;
+configurenotify(const XEvent *e) {
+	const XConfigureEvent *ev = &e->xconfigure;
 	Client *c;
 
 	if(ev->window == win && (ev->width != ww || ev->height != wh)) {
@@ -213,8 +213,8 @@ configurenotify(XEvent *e) {
 }
 
 void
-configurerequest(XEvent *e) {
-	XConfigureRequestEvent *ev = &e->xconfigurerequest;
+configurerequest(const XEvent *e) {
+	const XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
 	Client *c;
 
@@ -231,17 +231,17 @@ configurerequest(XEvent *e) {
 }
 
 void
-createnotify(XEvent *e) {
-	XCreateWindowEvent *ev = &e->xcreatewindow;
+createnotify(const XEvent *e) {
+	const XCreateWindowEvent *ev = &e->xcreatewindow;
 
 	if(ev->window != win && !getclient(ev->window))
 		manage(ev->window);
 }
 
 void
-destroynotify(XEvent *e) {
+destroynotify(const XEvent *e) {
+	const XDestroyWindowEvent *ev = &e->xdestroywindow;
 	Client *c;
-	XDestroyWindowEvent *ev = &e->xdestroywindow;
 
 	if((c = getclient(ev->window)))
 		unmanage(c);
@@ -312,8 +312,8 @@ drawbar() {
 
 void
 drawtext(const char *text, unsigned long col[ColLast]) {
-	char buf[256];
 	int i, x, y, h, len, olen;
+	char buf[256];
 	XRectangle r = { dc.x, dc.y, dc.w, dc.h };
 
 	XSetForeground(dpy, dc.gc, col[ColBG]);
@@ -348,13 +348,13 @@ emallocz(size_t size) {
 }
 
 void
-enternotify(XEvent *e) {
+enternotify(const XEvent *e) {
 	focus(sel);
 }
 
 void
-expose(XEvent *e) {
-	XExposeEvent *ev = &e->xexpose;
+expose(const XEvent *e) {
+	const XExposeEvent *ev = &e->xexpose;
 
 	if(ev->count == 0 && win == ev->window)
 		drawbar();
@@ -388,7 +388,7 @@ focus(Client *c) {
 }
 
 void
-focusin(XEvent *e) {
+focusin(const XEvent *e) {
 	focus(sel);
 }
 
@@ -510,12 +510,11 @@ isprotodel(Client *c) {
 }
 
 void
-keypress(XEvent *e) {
+keypress(const XEvent *e) {
+	const XKeyEvent *ev = &e->xkey;
 	unsigned int i;
 	KeySym keysym;
-	XKeyEvent *ev;
 
-	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
 	for(i = 0; i < LENGTH(keys); i++)
 		if(keysym == keys[i].keysym
@@ -602,9 +601,9 @@ move(const Arg *arg) {
 }
 
 void
-propertynotify(XEvent *e) {
+propertynotify(const XEvent *e) {
+	const XPropertyEvent *ev = &e->xproperty;
 	Client *c;
-	XPropertyEvent *ev = &e->xproperty;
 
 	if(ev->state != PropertyDelete && ev->atom == XA_WM_NAME
 			&& (c = getclient(ev->window))) {
@@ -613,7 +612,7 @@ propertynotify(XEvent *e) {
 }
 
 void
-reparentnotify(XEvent *e) {
+reparentnotify(const XEvent *e) {
 }
 
 void
@@ -761,9 +760,9 @@ unmanage(Client *c) {
 }
 
 void
-unmapnotify(XEvent *e) {
+unmapnotify(const XEvent *e) {
+	const XUnmapEvent *ev = &e->xunmap;
 	Client *c;
-	XUnmapEvent *ev = &e->xunmap;
 
 	if((c = getclient(ev->window)))
 		unmanage(c);
