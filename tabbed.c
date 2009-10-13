@@ -658,7 +658,7 @@ void
 run(void) {
 	XEvent ev;
 
-	/* main event loop, also reads xids from stdin */
+	/* main event loop */
 	XSync(dpy, False);
 	drawbar();
 	while(running) {
