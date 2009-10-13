@@ -92,6 +92,7 @@ static void buttonpress(XEvent *e);
 static void cleanup(void);
 static void clientmessage(XEvent *e);
 static void configurenotify(XEvent *e);
+static void configurerequest(XEvent *e);
 static void createnotify(XEvent *e);
 static void destroynotify(XEvent *e);
 static void die(const char *errstr, ...);
@@ -133,6 +134,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
 	[ClientMessage] = clientmessage,
 	[ConfigureNotify] = configurenotify,
+	[ConfigureRequest] = configurerequest,
 	[CreateNotify] = createnotify,
 	[DestroyNotify] = destroynotify,
 	[EnterNotify] = enternotify,
@@ -152,7 +154,7 @@ static Atom wmatom[WMLast], netatom[NetLast], xembedatom;
 static Window root, win;
 static Client *clients = NULL, *sel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
-static char winid[128];
+static char winid[64];
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -193,6 +195,7 @@ clientmessage(XEvent *e) {
 		printf("%ld %ld %ld %ld %ld\n", ev->data.l[0], ev->data.l[1], ev->data.l[2], ev->data.l[3], ev->data.l[4]);
 	}
 }
+
 void
 configurenotify(XEvent *e) {
 	XConfigureEvent *ev = &e->xconfigure;
@@ -206,6 +209,24 @@ configurenotify(XEvent *e) {
 		for(c = clients; c; c = c->next)
 			resize(c, ww, wh - bh);
 		XSync(dpy, False);
+	}
+}
+
+void
+configurerequest(XEvent *e) {
+	XConfigureRequestEvent *ev = &e->xconfigurerequest;
+	XWindowChanges wc;
+	Client *c;
+
+	if((c = getclient(ev->window))) {
+		wc.x = 0;
+		wc.y = bh;
+		wc.width = ww;
+		wc.height = wh - bh;
+		wc.border_width = 0;
+		wc.sibling = ev->above;
+		wc.stack_mode = ev->detail;
+		XConfigureWindow(dpy, c->win, ev->value_mask, &wc);
 	}
 }
 
@@ -241,11 +262,13 @@ drawbar() {
 	unsigned long *col;
 	int n, width;
 	Client *c, *fc;
+	char *name = NULL;
 
 	if(!clients) {
 		dc.x = 0;
 		dc.w = ww;
-		drawtext("tabbed-"VERSION, dc.norm);
+		XFetchName(dpy, win, &name);
+		drawtext(name ? name : "", dc.norm);
 		XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, 0);
 		XSync(dpy, False);
 		return;
@@ -341,13 +364,12 @@ void
 focus(Client *c) {
 	XEvent e;
 
-	if(!c)
-		c = clients;
-	if(!c) {
-		sel = NULL;
+	if(!clients) {
 		XStoreName(dpy, win, "tabbed-"VERSION);
 		return;
 	}
+	if(!c)
+		return;
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	e.xclient.window = c->win;
@@ -683,11 +705,11 @@ setup(void) {
 			StructureNotifyMask);
 	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
-	XStoreName(dpy, win, "tabbed-"VERSION);
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
 	snprintf(winid, LENGTH(winid), "%u", (int)win);
+	focus(clients);
 }
 
 void
@@ -725,7 +747,6 @@ void
 unmanage(Client *c) {
 	Client *pc;
 
-	focus(NULL);
 	if(!clients)
 		return;
 	else if(c == clients)
@@ -735,6 +756,7 @@ unmanage(Client *c) {
 		pc->next = c->next;
 	}
 	free(c);
+	focus(clients);
 	XSync(dpy, False);
 }
 
