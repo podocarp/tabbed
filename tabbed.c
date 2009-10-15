@@ -119,7 +119,7 @@ static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
-static void sigchld(int signal);
+static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
 static void unmanage(Client *c);
