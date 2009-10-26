@@ -47,11 +47,9 @@
 #define LENGTH(x)                (sizeof x / sizeof x[0])
 #define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
-#define XEMBED_EMBEDDED_NOTIFY   0
 
 enum { ColFG, ColBG, ColLast };                         /* color */
-enum { NetSupported, NetWMName, NetLast };              /* EWMH atoms */
-enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
+enum { WMProtocols, WMDelete, WMLast };                 /* default atoms */
 
 typedef union {
 	int i;
@@ -147,10 +145,10 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True, badwindow = False;
+static Bool running = True, hadclients = False;
 static Display *dpy;
 static DC dc;
-static Atom wmatom[WMLast], netatom[NetLast], xembedatom;
+static Atom wmatom[WMLast], xembedatom;
 static Window root, win;
 static Client *clients = NULL, *sel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -177,6 +175,15 @@ buttonpress(const XEvent *e) {
 
 void
 cleanup(void) {
+	Client *c, *n;
+
+	for(c = clients; c; c = n) {
+		killclient(NULL);
+		focus(c);
+		XReparentWindow(dpy, c->win, root, 0, 0);
+		n = c->next;
+		unmanage(c);
+	}
 	if(dc.font.set)
 		XFreeFontSet(dpy, dc.font.set);
 	else
@@ -191,9 +198,9 @@ void
 clientmessage(const XEvent *e) {
 	const XClientMessageEvent *ev = &e->xclient;
 
-	if(ev->message_type == xembedatom) {
-		printf("%ld %ld %ld %ld %ld\n", ev->data.l[0], ev->data.l[1], ev->data.l[2], ev->data.l[3], ev->data.l[4]);
-	}
+	if(ev->message_type == wmatom[WMProtocols]
+			&& ev->data.l[0] == wmatom[WMDelete])
+		running = False;
 }
 
 void
@@ -552,14 +559,11 @@ manage(Window w) {
 		Client *c;
 		XEvent e;
 
+		hadclients = True;
 		XWithdrawWindow(dpy, w, 0);
 		XReparentWindow(dpy, w, win, 0, bh);
 		XSelectInput(dpy, w, PropertyChangeMask|StructureNotifyMask|EnterWindowMask);
 		XSync(dpy, False);
-		if(badwindow) {
-			badwindow = False;
-			return;
-		}
 		for(i = 0; i < LENGTH(keys); i++) {
 			if((code = XKeysymToKeycode(dpy, keys[i].keysym)))
 				for(j = 0; j < LENGTH(modifiers); j++)
@@ -679,9 +683,6 @@ setup(void) {
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
-	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
-	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
 	xembedatom = XInternAtom(dpy, "_XEMBED", False);
 	/* init appearance */
 	wx = 0;
@@ -701,12 +702,13 @@ setup(void) {
 	XMapRaised(dpy, win);
 	XSelectInput(dpy, win, SubstructureNotifyMask|FocusChangeMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
-			StructureNotifyMask);
+			StructureNotifyMask|SubstructureRedirectMask);
 	xerrorxlib = XSetErrorHandler(xerror);
 	XClassHint class_hint;
 	class_hint.res_name = "tabbed";
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
+	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 	snprintf(winid, LENGTH(winid), "%u", (int)win);
 	focus(clients);
 }
@@ -749,14 +751,16 @@ unmanage(Client *c) {
 	if(!clients)
 		return;
 	else if(c == clients)
-		clients = c->next;
+		pc = clients = c->next;
 	else {
 		for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
 		pc->next = c->next;
 	}
+	focus(c->next ? c->next : pc);
 	free(c);
-	focus(clients);
 	XSync(dpy, False);
+	if(hadclients && !clients)
+		running = False;
 }
 
 void
@@ -798,10 +802,6 @@ updatetitle(Client *c) {
  * default error handler, which may call exit.  */
 int
 xerror(Display *dpy, XErrorEvent *ee) {
-	if(ee->error_code == BadWindow) {
-		badwindow = True;
-		return 0;
-	}
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
@@ -825,12 +825,15 @@ main(int argc, char *argv[]) {
 	setup();
 	printf("%i\n", (int)win);
 	fflush(NULL);
-	if(detach && fork() != 0) {
-		if(dpy)
-			close(ConnectionNumber(dpy));
-		return EXIT_SUCCESS;
+	if(detach) {
+		if(fork() == 0)
+			fclose(stdout);
+		else {
+			if(dpy)
+				close(ConnectionNumber(dpy));
+			return EXIT_SUCCESS;
+		}
 	}
-	fclose(stdout);
 	run();
 	cleanup();
 	XCloseDisplay(dpy);
