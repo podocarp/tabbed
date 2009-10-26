@@ -5,7 +5,7 @@ tabbed is a simple Xembed container manager based on Xlib.
 
 Requirements
 ------------
-In order to build surf you need the Xlib header files.
+In order to build tabbed you need the Xlib header files.
 
 
 Installation

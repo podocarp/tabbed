@@ -1,4 +1,4 @@
-# tabbed - tabbing interface for surf
+# tabbed - tabbing interface
 # See LICENSE file for copyright and license details.
 
 include config.mk
@@ -35,7 +35,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p tabbed-${VERSION}
-	@cp -R LICENSE Makefile README config.mk \
+	@cp -R LICENSE Makefile README config.def.h config.mk \
 		tabbed.1 ${SRC} tabbed-${VERSION}
 	@tar -cf tabbed-${VERSION}.tar tabbed-${VERSION}
 	@gzip tabbed-${VERSION}.tar
