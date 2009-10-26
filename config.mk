@@ -1,5 +1,5 @@
 # tabbed version
-VERSION = 0.0
+VERSION = 0.1
 
 # Customize below to fit your system
 
@@ -13,11 +13,9 @@ LIBS = -L/usr/lib -lc -lX11
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-#CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
-#CFLAGS = -std=c99 -pedantic -Wall -Werror -O0 ${INCS} ${CPPFLAGS}
-CFLAGS = -g -std=c99 -pedantic -Wall -Werror -O0 ${INCS} ${CPPFLAGS}
-#LDFLAGS = -s ${LIBS}
-LDFLAGS = ${LIBS}
+CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
+LDFLAGS = -s ${LIBS}
+#LDFLAGS = ${LIBS}
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
