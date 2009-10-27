@@ -116,6 +116,7 @@ static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
 static void setup(void);
+static void sendxembed(Client *c, long msg, long detail, long d1, long d2);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
@@ -367,8 +368,6 @@ expose(const XEvent *e) {
 
 void
 focus(Client *c) {
-	XEvent e;
-
 	if(!clients) {
 		XStoreName(dpy, win, "tabbed-"VERSION);
 		return;
@@ -377,16 +376,8 @@ focus(Client *c) {
 		return;
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-	e.xclient.window = c->win;
-	e.xclient.type = ClientMessage;
-	e.xclient.message_type = xembedatom;
-	e.xclient.format = 32;
-	e.xclient.data.l[0] = CurrentTime;
-	e.xclient.data.l[1] = XEMBED_FOCUS_IN;
-	e.xclient.data.l[2] = XEMBED_FOCUS_CURRENT;
-	e.xclient.data.l[3] = 0;
-	e.xclient.data.l[4] = 0;
-	XSendEvent(dpy, c->win, False, NoEventMask, &e);
+	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
+	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, c->name);
 	sel = c;
 	drawbar();
@@ -705,6 +696,22 @@ setup(void) {
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 	snprintf(winid, LENGTH(winid), "%u", (int)win);
 	focus(clients);
+}
+
+void
+sendxembed(Client *c, long msg, long detail, long d1, long d2) {
+	XEvent e = { 0 };
+
+	e.xclient.window = c->win;
+	e.xclient.type = ClientMessage;
+	e.xclient.message_type = xembedatom;
+	e.xclient.format = 32;
+	e.xclient.data.l[0] = CurrentTime;
+	e.xclient.data.l[1] = msg;
+	e.xclient.data.l[2] = detail;
+	e.xclient.data.l[3] = d1;
+	e.xclient.data.l[4] = d2;
+	XSendEvent(dpy, c->win, False, NoEventMask, &e);
 }
 
 void
