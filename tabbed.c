@@ -112,7 +112,6 @@ static void killclient(const Arg *arg);
 static void manage(Window win);
 static void move(const Arg *arg);
 static void propertynotify(const XEvent *e);
-static void reparentnotify(const XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
@@ -140,7 +139,6 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 	[FocusIn] = focusin,
 	[KeyPress] = keypress,
 	[PropertyNotify] = propertynotify,
-	[ReparentNotify] = reparentnotify,
 	[UnmapNotify] = unmapnotify,
 };
 static int bh, wx, wy, ww, wh;
@@ -388,8 +386,8 @@ focus(Client *c) {
 	e.xclient.data.l[2] = XEMBED_FOCUS_CURRENT;
 	e.xclient.data.l[3] = 0;
 	e.xclient.data.l[4] = 0;
-	XSendEvent(dpy, root, False, NoEventMask, &e);
-	XStoreName(dpy, win, sel->name);
+	XSendEvent(dpy, c->win, False, NoEventMask, &e);
+	XStoreName(dpy, win, c->name);
 	sel = c;
 	drawbar();
 }
@@ -616,10 +614,6 @@ propertynotify(const XEvent *e) {
 }
 
 void
-reparentnotify(const XEvent *e) {
-}
-
-void
 resize(Client *c, int w, int h) {
 	XConfigureEvent ce;
 	XWindowChanges wc;
@@ -805,7 +799,6 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
-
 }
 
 int
