@@ -771,8 +771,6 @@ unmapnotify(const XEvent *e) {
 
 	if((c = getclient(ev->window)))
 		unmanage(c);
-	else if(ev->window == win)
-		running = False;
 }
 
 void
