@@ -111,6 +111,7 @@ static Bool isprotodel(Client *c);
 static void keypress(const XEvent *e);
 static void killclient(const Arg *arg);
 static void manage(Window win);
+static void maprequest(const XEvent *e);
 static void move(const Arg *arg);
 static void propertynotify(const XEvent *e);
 static void resize(Client *c, int w, int h);
@@ -139,6 +140,7 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 	[Expose] = expose,
 	[FocusIn] = focusin,
 	[KeyPress] = keypress,
+	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
 };
 static int bh, wx, wy, ww, wh;
@@ -579,6 +581,14 @@ manage(Window w) {
 		XSync(dpy, False);
 		focus(c);
 	}
+}
+
+void
+maprequest(const XEvent *e) {
+	const XMapRequestEvent *ev = &e->xmaprequest;
+
+	if(!getclient(ev->window))
+		manage(ev->window);
 }
 
 void
