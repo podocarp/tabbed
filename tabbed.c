@@ -83,6 +83,7 @@ typedef struct Client {
 	struct Client *next;
 	Window win;
 	int tabx;
+	Bool mapped;
 } Client;
 
 /* function declarations */
@@ -121,7 +122,6 @@ static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
 static void unmanage(Client *c);
-static void unmapnotify(const XEvent *e);
 static void updatenumlockmask(void);
 static void updatetitle(Client *c);
 static int xerror(Display *dpy, XErrorEvent *ee);
@@ -140,7 +140,6 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 	[FocusIn] = focusin,
 	[KeyPress] = keypress,
 	[PropertyNotify] = propertynotify,
-	[UnmapNotify] = unmapnotify,
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
@@ -765,15 +764,6 @@ unmanage(Client *c) {
 }
 
 void
-unmapnotify(const XEvent *e) {
-	const XUnmapEvent *ev = &e->xunmap;
-	Client *c;
-
-	if((c = getclient(ev->window)))
-		unmanage(c);
-}
-
-void
 updatenumlockmask(void) {
 	unsigned int i, j;
 	XModifierKeymap *modmap;
@@ -801,6 +791,16 @@ updatetitle(Client *c) {
  * default error handler, which may call exit.  */
 int
 xerror(Display *dpy, XErrorEvent *ee) {
+	if(ee->error_code == BadWindow
+	|| (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
+	|| (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
+	|| (ee->request_code == X_PolyFillRectangle && ee->error_code == BadDrawable)
+	|| (ee->request_code == X_PolySegment && ee->error_code == BadDrawable)
+	|| (ee->request_code == X_ConfigureWindow && ee->error_code == BadMatch)
+	|| (ee->request_code == X_GrabButton && ee->error_code == BadAccess)
+	|| (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
+	|| (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
+		return 0;
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
