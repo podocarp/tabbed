@@ -1,11 +1,11 @@
-static const char font[]            = "-*-proggytiny-*-*-*-*-*-*-*-*-*-*-*-*";
-static const char normbgcolor[]     = "#202020";
-static const char normfgcolor[]     = "#c0c0c0";
-static const char selbgcolor[]      = "#884400";
-static const char selfgcolor[]      = "#f0f0f0";
-static const int tabwidth           = 200;
-static const char before[]          = "<";
-static const char after[]           = ">";
+static const char *font        = "-*-terminus-medium-r-normal-*-14-*-*-*-*-*-*-*";
+static const char *normbgcolor = "#cccccc";
+static const char *normfgcolor = "#000000";
+static const char *selbgcolor  = "#0066ff";
+static const char *selfgcolor  = "#ffffff";
+static const char *before      = "<";
+static const char *after       = ">";
+static const int tabwidth      = 200;
 
 #define MODKEY ControlMask
 static Key keys[] = { \
