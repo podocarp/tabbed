@@ -161,13 +161,27 @@ buttonpress(const XEvent *e) {
 	const XButtonPressedEvent *ev = &e->xbutton;
 	int i;
 	Client *c;
+	Arg arg;
 
 	c = getfirsttab();
 	if(c != clients && ev->x < TEXTW(before))
 		return;
 	for(i = 0; c; c = c->next, i++) {
 		if(c->tabx > ev->x) {
-			focus(c);
+			switch(ev->button) {
+			case Button1:
+				focus(c);
+				break;
+			case Button2:
+				focus(c);
+				killclient(NULL);
+				break;
+			case Button4:
+			case Button5:
+				arg.i = ev->button == Button4 ? -1 : 1;
+				rotate(&arg);
+				break;
+			}
 			break;
 		}
 	}
