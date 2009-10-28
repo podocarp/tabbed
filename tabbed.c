@@ -117,8 +117,8 @@ static void propertynotify(const XEvent *e);
 static void resize(Client *c, int w, int h);
 static void rotate(const Arg *arg);
 static void run(void);
-static void setup(void);
 static void sendxembed(Client *c, long msg, long detail, long d1, long d2);
+static void setup(void);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
@@ -206,15 +206,14 @@ clientmessage(const XEvent *e) {
 void
 configurenotify(const XEvent *e) {
 	const XConfigureEvent *ev = &e->xconfigure;
-	Client *c;
 
 	if(ev->window == win && (ev->width != ww || ev->height != wh)) {
 		ww = ev->width;
 		wh = ev->height;
 		XFreePixmap(dpy, dc.drawable);
 		dc.drawable = XCreatePixmap(dpy, root, ww, wh, DefaultDepth(dpy, screen));
-		for(c = clients; c; c = c->next)
-			resize(c, ww, wh - bh);
+		if(sel)
+			resize(sel, ww, wh - bh);
 		XSync(dpy, False);
 	}
 }
@@ -375,6 +374,7 @@ focus(Client *c) {
 	}
 	if(!c)
 		return;
+	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
@@ -565,7 +565,6 @@ manage(Window w) {
 		c->win = w;
 		clients = c;
 		updatetitle(c);
-		resize(c, ww, wh - bh);
 		drawbar();
 		XMapRaised(dpy, w);
 		e.xclient.window = w;
@@ -631,7 +630,6 @@ resize(Client *c, int w, int h) {
 	ce.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWWidth|CWHeight, &wc);
 	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
-	XSync(dpy, False);
 }
 
 void
@@ -663,6 +661,22 @@ run(void) {
 		if(handler[ev.type])
 			(handler[ev.type])(&ev); /* call handler */
 	}
+}
+
+void
+sendxembed(Client *c, long msg, long detail, long d1, long d2) {
+	XEvent e = { 0 };
+
+	e.xclient.window = c->win;
+	e.xclient.type = ClientMessage;
+	e.xclient.message_type = xembedatom;
+	e.xclient.format = 32;
+	e.xclient.data.l[0] = CurrentTime;
+	e.xclient.data.l[1] = msg;
+	e.xclient.data.l[2] = detail;
+	e.xclient.data.l[3] = d1;
+	e.xclient.data.l[4] = d2;
+	XSendEvent(dpy, c->win, False, NoEventMask, &e);
 }
 
 void
@@ -705,22 +719,6 @@ setup(void) {
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 	snprintf(winid, LENGTH(winid), "%u", (int)win);
 	focus(clients);
-}
-
-void
-sendxembed(Client *c, long msg, long detail, long d1, long d2) {
-	XEvent e = { 0 };
-
-	e.xclient.window = c->win;
-	e.xclient.type = ClientMessage;
-	e.xclient.message_type = xembedatom;
-	e.xclient.format = 32;
-	e.xclient.data.l[0] = CurrentTime;
-	e.xclient.data.l[1] = msg;
-	e.xclient.data.l[2] = detail;
-	e.xclient.data.l[3] = d1;
-	e.xclient.data.l[4] = d2;
-	XSendEvent(dpy, c->win, False, NoEventMask, &e);
 }
 
 void
