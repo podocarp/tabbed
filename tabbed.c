@@ -145,7 +145,7 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True, hadclients = False;
+static Bool running = True;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast], xembedatom;
@@ -563,7 +563,6 @@ manage(Window w) {
 		Client *c;
 		XEvent e;
 
-		hadclients = True;
 		XWithdrawWindow(dpy, w, 0);
 		XReparentWindow(dpy, w, win, 0, bh);
 		XSelectInput(dpy, w, PropertyChangeMask|StructureNotifyMask|EnterWindowMask);
@@ -781,8 +780,6 @@ unmanage(Client *c) {
 	focus(c->next ? c->next : pc);
 	free(c);
 	XSync(dpy, False);
-	if(hadclients && !clients)
-		running = False;
 }
 
 void
