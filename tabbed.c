@@ -102,6 +102,7 @@ static void enternotify(const XEvent *e);
 static void expose(const XEvent *e);
 static void focus(Client *c);
 static void focusin(const XEvent *e);
+static void focusonce(const Arg *arg);
 static Client *getclient(Window w);
 static unsigned long getcolor(const char *colstr);
 static Client *getfirsttab();
@@ -145,12 +146,12 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True;
+static Bool running = True, nextfocus;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast], xembedatom;
 static Window root, win;
-static Client *clients = NULL, *sel = NULL;
+static Client *clients = NULL, *sel = NULL, *lastsel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static char winid[64];
 /* configuration, allows nested code to access above variables */
@@ -387,6 +388,8 @@ focus(Client *c) {
 		return;
 	}
 	if(!c)
+		c = sel ? sel : clients;
+	if(!c)
 		return;
 	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
@@ -394,6 +397,10 @@ focus(Client *c) {
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, c->name);
+	if(sel != c) {
+		lastsel = sel;
+		puts("set");
+	}
 	sel = c;
 	drawbar();
 }
@@ -401,6 +408,11 @@ focus(Client *c) {
 void
 focusin(const XEvent *e) {
 	focus(sel);
+}
+
+void
+focusonce(const Arg *arg) {
+	nextfocus = True;
 }
 
 Client *
@@ -591,7 +603,8 @@ manage(Window w) {
 		e.xclient.data.l[4] = 0;
 		XSendEvent(dpy, root, False, NoEventMask, &e);
 		XSync(dpy, False);
-		focus(c);
+		focus(nextfocus ? c : sel);
+		nextfocus = foreground;
 	}
 }
 
@@ -649,7 +662,9 @@ void
 rotate(const Arg *arg) {
 	Client *c;
 
-	if(arg->i > 0) {
+	if(arg->i == 0)
+		focus(lastsel);
+	else if(arg->i > 0) {
 		if(sel && sel->next)
 			focus(sel->next);
 		else
@@ -731,6 +746,7 @@ setup(void) {
 	XSetClassHint(dpy, win, &class_hint);
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 	snprintf(winid, LENGTH(winid), "%u", (int)win);
+	nextfocus = foreground;
 	focus(clients);
 }
 
@@ -777,7 +793,9 @@ unmanage(Client *c) {
 		for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
 		pc->next = c->next;
 	}
-	focus(c->next ? c->next : pc);
+	if(c == lastsel)
+		lastsel = pc;
+	focus(lastsel);
 	free(c);
 	XSync(dpy, False);
 }
