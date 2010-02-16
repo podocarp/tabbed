@@ -383,16 +383,13 @@ expose(const XEvent *e) {
 
 void
 focus(Client *c) {
-	if(!clients) {
+	/* If c, sel and clients are NULL, raise tabbed-win itself */
+	if(!c && !(c = sel ? sel : clients)) {
 		XStoreName(dpy, win, "tabbed-"VERSION);
 		XRaiseWindow(dpy, win);
 		XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
 		return;
 	}
-	if(!c)
-		c = sel ? sel : clients;
-	if(!c)
-		return;
 	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
