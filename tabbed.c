@@ -399,7 +399,6 @@ focus(Client *c) {
 	XStoreName(dpy, win, c->name);
 	if(sel != c) {
 		lastsel = sel;
-		puts("set");
 	}
 	sel = c;
 	drawbar();
@@ -605,6 +604,8 @@ manage(Window w) {
 		XSync(dpy, False);
 		focus(nextfocus ? c : sel);
 		nextfocus = foreground;
+		if(!lastsel)
+			lastsel = c;
 	}
 }
 
@@ -794,9 +795,13 @@ unmanage(Client *c) {
 		pc->next = c->next;
 	}
 	if(c == lastsel)
-		lastsel = pc;
-	focus(lastsel);
+		lastsel = clients;
+	if(c == sel) {
+		sel = pc;
+		focus(lastsel);
+	}
 	free(c);
+	drawbar();
 	XSync(dpy, False);
 }
 
