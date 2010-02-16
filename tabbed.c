@@ -385,6 +385,8 @@ void
 focus(Client *c) {
 	if(!clients) {
 		XStoreName(dpy, win, "tabbed-"VERSION);
+		XRaiseWindow(dpy, win);
+		XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
 		return;
 	}
 	if(!c)
