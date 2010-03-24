@@ -3,25 +3,27 @@
 tabbed \- simple generic tabbed interface
 .SH SYNOPSIS
 .B tabbed
-.RB [ \-dhv ]
-.RB "URI"
+.RB [ \-d ]
+.RB [ \-h ]
+.RB [ \-v ]
 .SH DESCRIPTION
 tabbed is a simple container for applications which support XEmbed, such as
 xterm or surf.
 .SH OPTIONS
 .TP
 .B \-d
-detaches tabbed from the terminal. Usefull for scripting.
+detaches tabbed from the terminal and prints xid to standard output. Useful for
+scripting.
 .TP
 .B \-h
-Prints usage information to standard output, then exits.
+prints usage information to standard error, then exits.
 .TP
 .B \-v
-Prints version information to standard output, then exits.
+prints version information to standard error, then exits.
 .SH USAGE
 .TP
 .B Ctrl\-Shift\-Return
-new surf-window.
+new surf window
 .TP
 .B Ctrl\-Shift\-h
 previous tab
@@ -29,13 +31,16 @@ previous tab
 .B Ctrl\-Shift\-l
 next tab
 .TP
+.B Ctrl\-Shift\-Tab
+toggles between tabs
+.TP
 .B Ctrl\-q
 closes the tab
 .TP
-.B Ctrl\-[0-9]
-jumps to n-th tab
+.B Ctrl\-[0..9]
+jumps to nth tab
 .SH SEE ALSO
-.BR xterm(1)
-.BR surf(1)
+.BR xterm (1),
+.BR surf (1).
 .SH BUGS
 Please report them!
