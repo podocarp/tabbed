@@ -387,12 +387,10 @@ focus(Client *c) {
 	if(!c && !(c = sel ? sel : clients)) {
 		XStoreName(dpy, win, "tabbed-"VERSION);
 		XRaiseWindow(dpy, win);
-		XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
 		return;
 	}
 	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
-	XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, c->name);
@@ -759,6 +757,7 @@ sigchld(int unused) {
 
 void
 spawn(const Arg *arg) {
+	puts("aaaa");
 	if(fork() == 0) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
