@@ -84,6 +84,7 @@ typedef struct Client {
 	Window win;
 	int tabx;
 	Bool mapped;
+	Bool closed;
 } Client;
 
 /* function declarations */
@@ -548,7 +549,7 @@ killclient(const Arg *arg) {
 
 	if(!sel)
 		return;
-	if(isprotodel(sel)) {
+	if(isprotodel(sel) && !sel->closed) {
 		ev.type = ClientMessage;
 		ev.xclient.window = sel->win;
 		ev.xclient.message_type = wmatom[WMProtocols];
@@ -556,6 +557,7 @@ killclient(const Arg *arg) {
 		ev.xclient.data.l[0] = wmatom[WMDelete];
 		ev.xclient.data.l[1] = CurrentTime;
 		XSendEvent(dpy, sel->win, False, NoEventMask, &ev);
+		sel->closed = True;
 	}
 	else
 		XKillClient(dpy, sel->win);
@@ -757,7 +759,6 @@ sigchld(int unused) {
 
 void
 spawn(const Arg *arg) {
-	puts("aaaa");
 	if(fork() == 0) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
