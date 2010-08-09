@@ -2,8 +2,6 @@
  *
  * To understand tabbed, start reading main().
  */
-#include <sys/select.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <locale.h>
 #include <stdarg.h>
@@ -12,13 +10,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <X11/cursorfont.h>
-#include <X11/keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <errno.h>
 
 /* XEMBED messages */
 #define XEMBED_EMBEDDED_NOTIFY          0
@@ -852,17 +847,17 @@ main(int argc, char *argv[]) {
 	int detach = 0;
 
 	if(argc == 2 && !strcmp("-v", argv[1]))
-		die("tabbed-"VERSION", © 2006-2008 tabbed engineers, see LICENSE for details\n");
+		die("tabbed-"VERSION", © 2009-2010 tabbed engineers, see LICENSE for details\n");
 	else if(argc == 2 && strcmp("-d", argv[1]) == 0)
 		detach = 1;
 	else if(argc != 1)
 		die("usage: tabbed [-d] [-v]\n");
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "warning: no locale support\n");
-	if(!(dpy = XOpenDisplay(0)))
+	if(!(dpy = XOpenDisplay(NULL)))
 		die("tabbed: cannot open display\n");
 	setup();
-	printf("%i\n", (int)win);
+	printf("%lu\n", win);
 	fflush(NULL);
 	if(detach) {
 		if(fork() == 0)
