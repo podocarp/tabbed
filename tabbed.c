@@ -39,7 +39,7 @@
 /* Macros */
 #define MAX(a, b)                ((a) > (b) ? (a) : (b))
 #define MIN(a, b)                ((a) < (b) ? (a) : (b))
-#define LENGTH(x)                (sizeof x / sizeof x[0])
+#define LENGTH(x)                (sizeof (x) / sizeof *(x))
 #define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
 
@@ -116,6 +116,7 @@ static void rotate(const Arg *arg);
 static void run(void);
 static void sendxembed(Client *c, long msg, long detail, long d1, long d2);
 static void setup(void);
+static void setcmd(int argc, char *argv[]);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
@@ -150,6 +151,7 @@ static Window root, win;
 static Client *clients = NULL, *sel = NULL, *lastsel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static char winid[64];
+static char **cmd = NULL;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -189,8 +191,8 @@ cleanup(void) {
 	Client *c, *n;
 
 	for(c = clients; c; c = n) {
-		killclient(NULL);
 		focus(c);
+		killclient(NULL);
 		XReparentWindow(dpy, c->win, root, 0, 0);
 		n = c->next;
 		unmanage(c);
@@ -203,6 +205,7 @@ cleanup(void) {
 	XFreeGC(dpy, dc.gc);
 	XDestroyWindow(dpy, win);
 	XSync(dpy, False);
+	free(cmd);
 }
 
 void
@@ -360,7 +363,7 @@ emallocz(size_t size) {
 	void *p;
 
 	if(!(p = calloc(1, size)))
-		die(0, "tabbed: cannot malloc");
+		die("tabbed: cannot malloc\n");
 	return p;
 }
 
@@ -423,7 +426,7 @@ getcolor(const char *colstr) {
 	XColor color;
 
 	if(!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
-		die("error, cannot allocate color '%s'\n", colstr);
+		die("tabbed: cannot allocate color '%s'\n", colstr);
 	return color.pixel;
 }
 
@@ -502,7 +505,7 @@ initfont(const char *fontstr) {
 		dc.font.xfont = NULL;
 		if(!(dc.font.xfont = XLoadQueryFont(dpy, fontstr))
 		&& !(dc.font.xfont = XLoadQueryFont(dpy, "fixed")))
-			die("error, cannot load font: '%s'\n", fontstr);
+			die("tabbed: cannot load font: '%s'\n", fontstr);
 		dc.font.ascent = dc.font.xfont->ascent;
 		dc.font.descent = dc.font.xfont->descent;
 	}
@@ -578,7 +581,7 @@ manage(Window w) {
 					XGrabKey(dpy, code, keys[i].mod | modifiers[j], w,
 						 True, GrabModeAsync, GrabModeAsync);
 		}
-		c = emallocz(sizeof(Client));
+		c = emallocz(sizeof *c);
 		c->next = clients;
 		c->win = w;
 		clients = c;
@@ -703,6 +706,17 @@ sendxembed(Client *c, long msg, long detail, long d1, long d2) {
 }
 
 void
+setcmd(int argc, char *argv[]) {
+	int i;
+
+	cmd = emallocz((argc+2) * sizeof *cmd);
+	for(i = 0; i < argc; i++)
+		cmd[i] = argv[i];
+	cmd[argc] = winid;
+	cmd[argc+1] = NULL;
+}
+
+void
 setup(void) {
 	/* clean up any zombies immediately */
 	sigchld(0);
@@ -740,7 +754,7 @@ setup(void) {
 	class_hint.res_class = "Tabbed";
 	XSetClassHint(dpy, win, &class_hint);
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
-	snprintf(winid, LENGTH(winid), "%u", (int)win);
+	snprintf(winid, sizeof winid, "%lu", win);
 	nextfocus = foreground;
 	focus(clients);
 }
@@ -748,7 +762,7 @@ setup(void) {
 void
 sigchld(int unused) {
 	if(signal(SIGCHLD, sigchld) == SIG_ERR)
-		die("Can't install SIGCHLD handler");
+		die("tabbed: cannot install SIGCHLD handler");
 	while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
@@ -758,8 +772,8 @@ spawn(const Arg *arg) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
 		setsid();
-		execvp(((char **)arg->v)[0], (char **)arg->v);
-		fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
+		execvp(cmd[0], cmd);
+		fprintf(stderr, "tabbed: execvp %s", cmd[0]);
 		perror(" failed");
 		exit(0);
 	}
@@ -844,16 +858,20 @@ xerror(Display *dpy, XErrorEvent *ee) {
 
 int
 main(int argc, char *argv[]) {
-	int detach = 0;
+	int i, detach = 0;
 
-	if(argc == 2 && !strcmp("-v", argv[1]))
-		die("tabbed-"VERSION", © 2009-2010 tabbed engineers, see LICENSE for details\n");
-	else if(argc == 2 && strcmp("-d", argv[1]) == 0)
-		detach = 1;
-	else if(argc != 1)
-		die("usage: tabbed [-d] [-v]\n");
+	for(i = 1; i < argc && !cmd; i++) {
+		if(!strcmp("-v", argv[i]))
+			die("tabbed-"VERSION", © 2009-2011 tabbed engineers, see LICENSE for details\n");
+		else if(!strcmp("-d", argv[i]))
+			detach = 1;
+		else
+			setcmd(argc-i, argv+i);
+	}
+	if(!cmd)
+		die("usage: tabbed [-d] [-v] command\n");
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
-		fprintf(stderr, "warning: no locale support\n");
+		fprintf(stderr, "tabbed: no locale support\n");
 	if(!(dpy = XOpenDisplay(NULL)))
 		die("tabbed: cannot open display\n");
 	setup();
