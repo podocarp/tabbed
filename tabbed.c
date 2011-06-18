@@ -869,13 +869,13 @@ main(int argc, char *argv[]) {
 			setcmd(argc-i, argv+i);
 	}
 	if(!cmd)
-		die("usage: tabbed [-d] [-v] command\n");
+		die("usage: tabbed [-d] [-v] command...\n");
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "tabbed: no locale support\n");
 	if(!(dpy = XOpenDisplay(NULL)))
 		die("tabbed: cannot open display\n");
 	setup();
-	printf("%lu\n", win);
+	printf("0x%lx\n", win);
 	fflush(NULL);
 	if(detach) {
 		if(fork() == 0)
