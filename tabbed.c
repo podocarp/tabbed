@@ -94,7 +94,6 @@ static void die(const char *errstr, ...);
 static void drawbar();
 static void drawtext(const char *text, unsigned long col[ColLast]);
 static void *emallocz(size_t size);
-static void enternotify(const XEvent *e);
 static void expose(const XEvent *e);
 static void focus(Client *c);
 static void focusin(const XEvent *e);
@@ -134,7 +133,6 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 	[ConfigureRequest] = configurerequest,
 	[CreateNotify] = createnotify,
 	[DestroyNotify] = destroynotify,
-	[EnterNotify] = enternotify,
 	[Expose] = expose,
 	[FocusIn] = focusin,
 	[KeyPress] = keypress,
@@ -368,11 +366,6 @@ emallocz(size_t size) {
 }
 
 void
-enternotify(const XEvent *e) {
-	focus(sel);
-}
-
-void
 expose(const XEvent *e) {
 	const XExposeEvent *ev = &e->xexpose;
 
@@ -390,6 +383,7 @@ focus(Client *c) {
 	}
 	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
+	XSetInputFocus(dpy, c->win, RevertToParent, CurrentTime);
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, c->name);
@@ -402,7 +396,15 @@ focus(Client *c) {
 
 void
 focusin(const XEvent *e) {
-	focus(sel);
+	const XFocusChangeEvent *ev = &e->xfocus;
+	int dummy;
+	Window focused;
+
+	if(ev->mode != NotifyUngrab) {
+		XGetInputFocus(dpy, &focused, &dummy);
+		if(focused == win)
+			focus(sel);
+	}
 }
 
 void
