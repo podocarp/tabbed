@@ -682,6 +682,7 @@ run(void) {
 	/* main event loop */
 	XSync(dpy, False);
 	drawbar();
+	spawn(NULL);
 	while(running) {
 		XNextEvent(dpy, &ev);
 		if(handler[ev.type])
