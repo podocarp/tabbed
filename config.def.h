@@ -1,12 +1,15 @@
-static const char *font        = "-*-terminus-medium-r-normal-*-14-*-*-*-*-*-*-*";
-static const char *normbgcolor = "#cccccc";
-static const char *normfgcolor = "#000000";
-static const char *selbgcolor  = "#0066ff";
-static const char *selfgcolor  = "#ffffff";
-static const char *before      = "<";
-static const char *after       = ">";
-static const int tabwidth      = 200;
-static const Bool foreground   = False;
+/* See LICENSE file for copyright and license details. */
+
+/* appearance */
+static const char font[]        = "-*-terminus-medium-r-*-*-16-*-*-*-*-*-*-*";
+static const char normbgcolor[] = "#222222";
+static const char normfgcolor[] = "#bbbbbb";
+static const char selbgcolor[]  = "#005577";
+static const char selfgcolor[]  = "#eeeeee";
+static const char before[]      = "<";
+static const char after[]       = ">";
+static const int  tabwidth      = 200;
+static const Bool foreground    = False;
 
 #define MODKEY ControlMask
 static Key keys[] = { \
