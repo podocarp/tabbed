@@ -377,7 +377,12 @@ void
 focus(Client *c) {
 	/* If c, sel and clients are NULL, raise tabbed-win itself */
 	if(!c && !(c = sel ? sel : clients)) {
-		XStoreName(dpy, win, "tabbed-"VERSION);
+		char buf[BUFSIZ] = "tabbed-"VERSION" ::";
+		size_t i, n;
+
+		for(i = 0, n = strlen(buf); cmd[i] && n < sizeof buf; i++)
+			n += snprintf(&buf[n], sizeof buf - n, " %s", cmd[i]);
+		XStoreName(dpy, win, buf);
 		XRaiseWindow(dpy, win);
 		return;
 	}
