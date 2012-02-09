@@ -863,30 +863,52 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	return xerrorxlib(dpy, ee); /* may call exit */
 }
 
+char *argv0;
+
 void
-usage(char *argv0)
+usage(void)
 {
 	die("usage: %s [-dhsv] command...\n", argv0);
 }
 
 int
 main(int argc, char *argv[]) {
-	int i, detach = 0;
+	int detach = 0;
+	char _argc;
+	char **_argv;
 
-	for(i = 1; i < argc && !cmd; i++) {
-		if(!strcmp("-v", argv[i]))
-			die("tabbed-"VERSION", © 2009-2011 tabbed engineers, see LICENSE for details\n");
-		else if(!strcmp("-d", argv[i]))
-			detach = 1;
-		else if(!strcmp("-s", argv[i]))
-			doinitspawn = False;
-		else if(!strcmp("-h", argv[i]))
-			usage(argv[0]);
-		else
-			setcmd(argc-i, argv+i);
+	for(argv0 = *argv, argv++, argc--;
+			argv[0] && argv[0][1] && argv[0][0] == '-';
+			argc--, argv++) {
+		if(argv[0][1] == '-' && argv[0][2] == '\0') {
+			argv++;
+			argc--;
+			break;
+		}
+		for(argv[0]++, _argv = argv; argv[0][0]; argv[0]++) {
+			if(_argv != argv)
+				break;
+			_argc = argv[0][0];
+			switch(_argc) {
+			case 'v':
+				die("tabbed-"VERSION", © 2009-2011"
+					" tabbed engineers, see LICENSE"
+					" for details.\n");
+			case 's':
+				doinitspawn = False;
+				break;
+			case 'h':
+				usage();
+			case 'd':
+				detach = 1;
+				break;
+			}
+		}
 	}
-	if(!cmd)
-		usage(argv[0]);
+	if(argc < 1)
+		usage();
+	setcmd(argc, argv);
+
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "tabbed: no locale support\n");
 	if(!(dpy = XOpenDisplay(NULL)))
