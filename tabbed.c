@@ -141,7 +141,7 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True, nextfocus;
+static Bool running = True, nextfocus, doinitspawn = True;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast], xembedatom;
@@ -687,7 +687,8 @@ run(void) {
 	/* main event loop */
 	XSync(dpy, False);
 	drawbar();
-	spawn(NULL);
+	if(doinitspawn == True)
+		spawn(NULL);
 	while(running) {
 		XNextEvent(dpy, &ev);
 		if(handler[ev.type])
@@ -862,6 +863,12 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	return xerrorxlib(dpy, ee); /* may call exit */
 }
 
+void
+usage(char *argv0)
+{
+	die("usage: %s [-dhsv] command...\n", argv0);
+}
+
 int
 main(int argc, char *argv[]) {
 	int i, detach = 0;
@@ -871,11 +878,15 @@ main(int argc, char *argv[]) {
 			die("tabbed-"VERSION", © 2009-2011 tabbed engineers, see LICENSE for details\n");
 		else if(!strcmp("-d", argv[i]))
 			detach = 1;
+		else if(!strcmp("-s", argv[i]))
+			doinitspawn = False;
+		else if(!strcmp("-h", argv[i]))
+			usage(argv[0]);
 		else
 			setcmd(argc-i, argv+i);
 	}
 	if(!cmd)
-		die("usage: tabbed [-d] [-v] command...\n");
+		usage(argv[0]);
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "tabbed: no locale support\n");
 	if(!(dpy = XOpenDisplay(NULL)))

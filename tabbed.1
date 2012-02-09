@@ -4,15 +4,26 @@ tabbed \- generic tabbed interface
 .SH SYNOPSIS
 .B tabbed
 .RB [ \-d ]
+.RB [ \-h ]
+.RB [ \-s ]
 .RB [ \-v ]
 .IR command ...
 .SH DESCRIPTION
 .B tabbed
-is a simple tabbed container for applications which support XEmbed.
+is a simple tabbed container for applications which support XEmbed. Tabbed
+will then run the provides command with the xid of tabbed as appended
+argument. (See EXAMPLES.) The automatic spawning of the command can be
+disabled by provoding the -s parameter. 
 .SH OPTIONS
 .TP
 .B \-d
 detaches tabbed from the terminal and prints its XID to stdout.
+.TP
+.B \-h
+will print the usage of tabbed.
+.TP
+.B \-s
+will disable automatic spawning of the command.
 .TP
 .B \-v
 prints version information to stderr, then exits.
