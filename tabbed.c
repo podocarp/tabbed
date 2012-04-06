@@ -15,6 +15,8 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 
+#include "arg.h"
+
 /* XEMBED messages */
 #define XEMBED_EMBEDDED_NOTIFY          0
 #define XEMBED_WINDOW_ACTIVATE          1
@@ -150,6 +152,8 @@ static Client *clients = NULL, *sel = NULL, *lastsel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static char winid[64];
 static char **cmd = NULL;
+
+char *argv0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -874,37 +878,22 @@ usage(void)
 int
 main(int argc, char *argv[]) {
 	int detach = 0;
-	char _argc;
-	char **_argv;
 
-	for(argv0 = *argv, argv++, argc--;
-			argv[0] && argv[0][1] && argv[0][0] == '-';
-			argc--, argv++) {
-		if(argv[0][1] == '-' && argv[0][2] == '\0') {
-			argv++;
-			argc--;
-			break;
-		}
-		for(argv[0]++, _argv = argv; argv[0][0]; argv[0]++) {
-			if(_argv != argv)
-				break;
-			_argc = argv[0][0];
-			switch(_argc) {
-			case 'v':
-				die("tabbed-"VERSION", © 2009-2011"
-					" tabbed engineers, see LICENSE"
-					" for details.\n");
-			case 's':
-				doinitspawn = False;
-				break;
-			case 'h':
-				usage();
-			case 'd':
-				detach = 1;
-				break;
-			}
-		}
-	}
+	ARGBEGIN {
+	case 'v':
+		die("tabbed-"VERSION", © 2009-2011"
+			" tabbed engineers, see LICENSE"
+			" for details.\n");
+	case 's':
+		doinitspawn = False;
+		break;
+	case 'h':
+		usage();
+	case 'd':
+		detach = 1;
+		break;
+	} ARGEND;
+
 	if(argc < 1)
 		doinitspawn = False;
 	setcmd(argc, argv);

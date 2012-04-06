@@ -36,7 +36,7 @@ dist: clean
 	@echo creating dist tarball
 	@mkdir -p tabbed-${VERSION}
 	@cp -R LICENSE Makefile README config.def.h config.mk \
-		tabbed.1 ${SRC} tabbed-${VERSION}
+		tabbed.1 arg.h ${SRC} tabbed-${VERSION}
 	@tar -cf tabbed-${VERSION}.tar tabbed-${VERSION}
 	@gzip tabbed-${VERSION}.tar
 	@rm -rf tabbed-${VERSION}
