@@ -881,7 +881,7 @@ main(int argc, char *argv[]) {
 
 	ARGBEGIN {
 	case 'v':
-		die("tabbed-"VERSION", © 2009-2011"
+		die("tabbed-"VERSION", © 2009-2012"
 			" tabbed engineers, see LICENSE"
 			" for details.\n");
 	case 's':
