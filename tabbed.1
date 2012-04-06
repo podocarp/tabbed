@@ -7,13 +7,14 @@ tabbed \- generic tabbed interface
 .RB [ \-h ]
 .RB [ \-s ]
 .RB [ \-v ]
-.IR command ...
+.IR [ command ... ]
 .SH DESCRIPTION
 .B tabbed
 is a simple tabbed container for applications which support XEmbed. Tabbed
 will then run the provides command with the xid of tabbed as appended
 argument. (See EXAMPLES.) The automatic spawning of the command can be
-disabled by provoding the -s parameter. 
+disabled by provoding the -s parameter. If no command is provided
+tabbed will just print its xid and run no command.
 .SH OPTIONS
 .TP
 .B \-d
@@ -52,3 +53,6 @@ $ tabbed surf -e
 $ tabbed urxvt -embed
 .TP
 $ tabbed xterm -into
+.TP
+$ $(tabbed -d >/tmp/tabbed.xid); urxvt -embed $(</tmp/tabbed.xid);
+

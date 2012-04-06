@@ -906,7 +906,7 @@ main(int argc, char *argv[]) {
 		}
 	}
 	if(argc < 1)
-		usage();
+		doinitspawn = False;
 	setcmd(argc, argv);
 
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
