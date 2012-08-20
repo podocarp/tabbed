@@ -785,7 +785,7 @@ spawn(const Arg *arg) {
 			close(ConnectionNumber(dpy));
 		setsid();
 		if(arg && arg->v) {
-			execvp(((char **)arg->v)[0], (char **)argv->v);
+			execvp(((char **)arg->v)[0], (char **)arg->v);
 			fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
 		} else {
 			execvp(cmd[0], cmd);
