@@ -784,8 +784,13 @@ spawn(const Arg *arg) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
 		setsid();
-		execvp(cmd[0], cmd);
-		fprintf(stderr, "tabbed: execvp %s", cmd[0]);
+		if(arg && arg->v) {
+			execvp(((char **)arg->v)[0], (char **)argv->v);
+			fprintf(stderr, "tabbed: execvp %s", ((char **)arg->v)[0]);
+		} else {
+			execvp(cmd[0], cmd);
+			fprintf(stderr, "tabbed: execvp %s", cmd[0]);
+		}
 		perror(" failed");
 		exit(0);
 	}
