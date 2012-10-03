@@ -153,6 +153,7 @@ static Client *clients = NULL, *sel = NULL, *lastsel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static char winid[64];
 static char **cmd = NULL;
+static char *wmname = "tabbed";
 
 char *argv0;
 /* configuration, allows nested code to access above variables */
@@ -732,20 +733,24 @@ void
 setup(void) {
 	/* clean up any zombies immediately */
 	sigchld(0);
+
 	/* init screen */
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
 	initfont(font);
 	bh = dc.h = dc.font.height + 2;
+
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	xembedatom = XInternAtom(dpy, "_XEMBED", False);
+
 	/* init appearance */
 	wx = 0;
 	wy = 0;
 	ww = 800;
 	wh = 600;
+
 	dc.norm[ColBG] = getcolor(normbgcolor);
 	dc.norm[ColFG] = getcolor(normfgcolor);
 	dc.sel[ColBG] = getcolor(selbgcolor);
@@ -761,11 +766,14 @@ setup(void) {
 			ButtonPressMask|ExposureMask|KeyPressMask|
 			StructureNotifyMask|SubstructureRedirectMask);
 	xerrorxlib = XSetErrorHandler(xerror);
+
 	XClassHint class_hint;
-	class_hint.res_name = "tabbed";
-	class_hint.res_class = "Tabbed";
+	class_hint.res_name = wmname;
+	class_hint.res_class = "tabbed";
 	XSetClassHint(dpy, win, &class_hint);
+
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
+
 	snprintf(winid, sizeof winid, "%lu", win);
 	nextfocus = foreground;
 	focus(clients);
@@ -878,7 +886,7 @@ char *argv0;
 void
 usage(void)
 {
-	die("usage: %s [-dhsv] command...\n", argv0);
+	die("usage: %s [-dhsv] [-n name] command...\n", argv0);
 }
 
 int
@@ -886,22 +894,27 @@ main(int argc, char *argv[]) {
 	int detach = 0;
 
 	ARGBEGIN {
+	case 'd':
+		detach = 1;
+		break;
+	case 'n':
+		wmname = EARGF(usage());
+		break;
+	case 's':
+		doinitspawn = False;
+		break;
 	case 'v':
 		die("tabbed-"VERSION", © 2009-2012"
 			" tabbed engineers, see LICENSE"
 			" for details.\n");
-	case 's':
-		doinitspawn = False;
-		break;
+	default:
 	case 'h':
 		usage();
-	case 'd':
-		detach = 1;
-		break;
 	} ARGEND;
 
 	if(argc < 1)
 		doinitspawn = False;
+
 	setcmd(argc, argv);
 
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
@@ -911,6 +924,7 @@ main(int argc, char *argv[]) {
 	setup();
 	printf("0x%lx\n", win);
 	fflush(NULL);
+
 	if(detach) {
 		if(fork() == 0)
 			fclose(stdout);
@@ -920,9 +934,11 @@ main(int argc, char *argv[]) {
 			return EXIT_SUCCESS;
 		}
 	}
+
 	run();
 	cleanup();
 	XCloseDisplay(dpy);
+
 	return EXIT_SUCCESS;
 }
 
