@@ -47,7 +47,7 @@
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
 
 enum { ColFG, ColBG, ColLast };                         /* color */
-enum { WMProtocols, WMDelete, WMLast };                 /* default atoms */
+enum { WMProtocols, WMDelete, WMName, XEmbed, WMLast };                 /* default atoms */
 
 typedef union {
 	int i;
@@ -147,7 +147,7 @@ static unsigned int numlockmask = 0;
 static Bool running = True, nextfocus, doinitspawn = True;
 static Display *dpy;
 static DC dc;
-static Atom wmatom[WMLast], xembedatom;
+static Atom wmatom[WMLast];
 static Window root, win;
 static Client *clients = NULL, *sel = NULL, *lastsel = NULL;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -601,7 +601,7 @@ manage(Window w) {
 		XMapRaised(dpy, w);
 		e.xclient.window = w;
 		e.xclient.type = ClientMessage;
-		e.xclient.message_type = xembedatom;
+		e.xclient.message_type = wmatom[XEmbed];
 		e.xclient.format = 32;
 		e.xclient.data.l[0] = CurrentTime;
 		e.xclient.data.l[1] = XEMBED_EMBEDDED_NOTIFY;
@@ -708,7 +708,7 @@ sendxembed(Client *c, long msg, long detail, long d1, long d2) {
 
 	e.xclient.window = c->win;
 	e.xclient.type = ClientMessage;
-	e.xclient.message_type = xembedatom;
+	e.xclient.message_type = wmatom[XEmbed];
 	e.xclient.format = 32;
 	e.xclient.data.l[0] = CurrentTime;
 	e.xclient.data.l[1] = msg;
@@ -743,7 +743,8 @@ setup(void) {
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-	xembedatom = XInternAtom(dpy, "_XEMBED", False);
+	wmatom[XEmbed] = XInternAtom(dpy, "_XEMBED", False);
+	wmatom[WMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
 
 	/* init appearance */
 	wx = 0;
@@ -855,7 +856,8 @@ updatenumlockmask(void) {
 
 void
 updatetitle(Client *c) {
-	gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
+	if(!gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name))
+		gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
 	if(sel == c)
 		XStoreName(dpy, win, c->name);
 	drawbar();
