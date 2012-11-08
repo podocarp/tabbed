@@ -641,7 +641,8 @@ manage(Window w) {
 
 		updatetitle(c);
 		drawbar();
-		XMapRaised(dpy, w);
+		XLowerWindow(dpy, w);
+		XMapWindow(dpy, w);
 
 		e.xclient.window = w;
 		e.xclient.type = ClientMessage;
