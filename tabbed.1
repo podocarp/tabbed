@@ -9,6 +9,8 @@ tabbed \- generic tabbed interface
 .RB [ \-v ]
 .RB [ \-n
 .IR name ]
+.RB [ \-r
+.IR narg ]
 .IR [ command ... ]
 .SH DESCRIPTION
 .B tabbed
@@ -28,6 +30,13 @@ will print the usage of tabbed.
 .BI \-n " name"
 will set the WM_CLASS attribute to
 .I name.
+.TP
+.BI \-r " narg"
+will replace the
+.I narg
+th argument in
+.I command
+with the window id, rather than appending it to the end.
 .TP
 .B \-s
 will disable automatic spawning of the command.
@@ -61,4 +70,18 @@ $ tabbed urxvt -embed
 $ tabbed xterm -into
 .TP
 $ $(tabbed -d >/tmp/tabbed.xid); urxvt -embed $(</tmp/tabbed.xid);
+.TP
+$ tabbed -r 2 st -w '' -e tmux
+.SH CUSTOMIZATION
+.B tabbed
+can be customized by creating a custom config.h and (re)compiling the source
+code. This keeps it fast, secure and simple.
+.SH AUTHORS
+See the LICENSE file for the authors.
+.SH LICENSE
+See the LICENSE file for the terms of redistribution.
+.SH SEE ALSO
+.BR st (1)
+.SH BUGS
+Please report them.
 

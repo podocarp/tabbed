@@ -118,7 +118,7 @@ static void rotate(const Arg *arg);
 static void run(void);
 static void sendxembed(Client *c, long msg, long detail, long d1, long d2);
 static void setup(void);
-static void setcmd(int argc, char *argv[]);
+static void setcmd(int argc, char *argv[], int);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
@@ -766,14 +766,14 @@ sendxembed(Client *c, long msg, long detail, long d1, long d2) {
 }
 
 void
-setcmd(int argc, char *argv[]) {
+setcmd(int argc, char *argv[], int replace) {
 	int i;
 
 	cmd = emallocz((argc+2) * sizeof(*cmd));
 	for(i = 0; i < argc; i++)
 		cmd[i] = argv[i];
-	cmd[argc] = winid;
-	cmd[argc+1] = NULL;
+	cmd[(replace > 0)? replace : argc] = winid;
+	cmd[argc + !(replace > 0)] = NULL;
 }
 
 void
@@ -952,12 +952,12 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dhsv] [-n name] command...\n", argv0);
+	die("usage: %s [-dhsv] [-n name] [-r narg] command...\n", argv0);
 }
 
 int
 main(int argc, char *argv[]) {
-	int detach = 0;
+	int detach = 0, replace = 0;
 
 	ARGBEGIN {
 	case 'd':
@@ -965,6 +965,9 @@ main(int argc, char *argv[]) {
 		break;
 	case 'n':
 		wmname = EARGF(usage());
+		break;
+	case 'r':
+		replace = atoi(EARGF(usage()));
 		break;
 	case 's':
 		doinitspawn = False;
@@ -981,7 +984,7 @@ main(int argc, char *argv[]) {
 	if(argc < 1)
 		doinitspawn = False;
 
-	setcmd(argc, argv);
+	setcmd(argc, argv, replace);
 
 	if(!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fprintf(stderr, "tabbed: no locale support\n");
