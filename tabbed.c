@@ -42,7 +42,7 @@
 /* Macros */
 #define MAX(a, b)                ((a) > (b) ? (a) : (b))
 #define MIN(a, b)                ((a) < (b) ? (a) : (b))
-#define LENGTH(x)                (sizeof (x) / sizeof *(x))
+#define LENGTH(x)                (sizeof((x)) / sizeof(*(x)))
 #define CLEANMASK(mask)          (mask & ~(numlockmask|LockMask))
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
 
@@ -201,10 +201,13 @@ cleanup(void) {
 		n = c->next;
 		unmanage(c);
 	}
-	if(dc.font.set)
+
+	if(dc.font.set) {
 		XFreeFontSet(dpy, dc.font.set);
-	else
+	} else {
 		XFreeFont(dpy, dc.font.xfont);
+	}
+
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
 	XDestroyWindow(dpy, win);
@@ -217,8 +220,9 @@ clientmessage(const XEvent *e) {
 	const XClientMessageEvent *ev = &e->xclient;
 
 	if(ev->message_type == wmatom[WMProtocols]
-			&& ev->data.l[0] == wmatom[WMDelete])
+			&& ev->data.l[0] == wmatom[WMDelete]) {
 		running = False;
+	}
 }
 
 void
@@ -229,7 +233,8 @@ configurenotify(const XEvent *e) {
 		ww = ev->width;
 		wh = ev->height;
 		XFreePixmap(dpy, dc.drawable);
-		dc.drawable = XCreatePixmap(dpy, root, ww, wh, DefaultDepth(dpy, screen));
+		dc.drawable = XCreatePixmap(dpy, root, ww, wh,
+				DefaultDepth(dpy, screen));
 		if(sel)
 			resize(sel, ww, wh - bh);
 		XSync(dpy, False);
@@ -297,10 +302,13 @@ drawbar() {
 		XSync(dpy, False);
 		return;
 	}
+
 	width = ww;
 	for(c = clients; c; c = c->next)
 		c->tabx = -1;
+
 	for(n = 0, fc = c = getfirsttab(); c; c = c->next, n++);
+
 	if(n * tabwidth > width) {
 		dc.w = TEXTW(after);
 		dc.x = width - dc.w;
@@ -308,22 +316,24 @@ drawbar() {
 		width -= dc.w;
 	}
 	dc.x = 0;
+
 	if(fc != clients) {
 		dc.w = TEXTW(before);
 		drawtext(before, dc.sel);
 		dc.x += dc.w;
 		width -= dc.w;
 	}
+
 	for(c = fc; c && dc.x < width; c = c->next) {
 		dc.w = tabwidth;
 		if(c == sel) {
 			col = dc.sel;
-			if(n * tabwidth > width)
+			if(n * tabwidth > width) {
 				dc.w += width % tabwidth;
-			else
+			} else {
 				dc.w = width - (n - 1) * tabwidth;
-		}
-		else {
+			}
+		} else {
 			col = dc.norm;
 		}
 		drawtext(c->name, col);
@@ -344,22 +354,30 @@ drawtext(const char *text, unsigned long col[ColLast]) {
 	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 	if(!text)
 		return;
+
 	olen = strlen(text);
 	h = dc.font.ascent + dc.font.descent;
 	y = dc.y + (dc.h / 2) - (h / 2) + dc.font.ascent;
 	x = dc.x + (h / 2);
+
 	/* shorten text if necessary */
-	for(len = MIN(olen, sizeof buf); len && textnw(text, len) > dc.w - h; len--);
+	for(len = MIN(olen, sizeof(buf));
+			len && textnw(text, len) > dc.w - h; len--);
 	if(!len)
 		return;
+
 	memcpy(buf, text, len);
-	if(len < olen)
+	if(len < olen) {
 		for(i = len; i && i > len - 3; buf[--i] = '.');
+	}
+
 	XSetForeground(dpy, dc.gc, col[ColFG]);
-	if(dc.font.set)
-		XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
-	else
+	if(dc.font.set) {
+		XmbDrawString(dpy, dc.drawable, dc.font.set,
+				dc.gc, x, y, buf, len);
+	} else {
 		XDrawString(dpy, dc.drawable, dc.gc, x, y, buf, len);
+	}
 }
 
 void *
@@ -381,26 +399,31 @@ expose(const XEvent *e) {
 
 void
 focus(Client *c) {
+	char buf[BUFSIZ] = "tabbed-"VERSION" ::";
+	size_t i, n;
+
 	/* If c, sel and clients are NULL, raise tabbed-win itself */
 	if(!c && !(c = sel ? sel : clients)) {
-		char buf[BUFSIZ] = "tabbed-"VERSION" ::";
-		size_t i, n;
+		for(i = 0, n = strlen(buf); cmd[i] && n < sizeof(buf); i++)
+			n += snprintf(&buf[n], sizeof(buf) - n, " %s", cmd[i]);
 
-		for(i = 0, n = strlen(buf); cmd[i] && n < sizeof buf; i++)
-			n += snprintf(&buf[n], sizeof buf - n, " %s", cmd[i]);
 		XStoreName(dpy, win, buf);
 		XRaiseWindow(dpy, win);
+
 		return;
 	}
+
 	resize(c, ww, wh - bh);
 	XRaiseWindow(dpy, c->win);
 	XSetInputFocus(dpy, c->win, RevertToParent, CurrentTime);
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, c->name);
+
 	if(sel != c) {
 		lastsel = sel;
 	}
+
 	sel = c;
 	drawbar();
 }
@@ -427,9 +450,11 @@ Client *
 getclient(Window w) {
 	Client *c;
 
-	for(c = clients; c; c = c->next)
+	for(c = clients; c; c = c->next) {
 		if(c->win == w)
 			return c;
+	}
+
 	return NULL;
 }
 
@@ -440,6 +465,7 @@ getcolor(const char *colstr) {
 
 	if(!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
 		die("tabbed: cannot allocate color '%s'\n", colstr);
+
 	return color.pixel;
 }
 
@@ -450,10 +476,13 @@ getfirsttab() {
 
 	if(!sel)
 		return NULL;
+
 	c = fc = clients;
 	for(n = 0; c; c = c->next, n++);
+
 	if(n * tabwidth > ww) {
 		for(seli = 0, c = clients; c && c != sel; c = c->next, seli++);
+
 		for(; seli * tabwidth > ww / 2 && n * tabwidth > ww;
 				fc = fc->next, seli--, n--);
 	}
@@ -468,40 +497,45 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 
 	if(!text || size == 0)
 		return False;
+
 	text[0] = '\0';
 	XGetTextProperty(dpy, w, &name, atom);
 	if(!name.nitems)
 		return False;
-	if(name.encoding == XA_STRING)
+
+	if(name.encoding == XA_STRING) {
 		strncpy(text, (char *)name.value, size - 1);
-	else {
-		if(XmbTextPropertyToTextList(dpy, &name, &list, &n) >= Success && n > 0 && *list) {
+	} else {
+		if(XmbTextPropertyToTextList(dpy, &name, &list, &n) >= Success
+				&& n > 0 && *list) {
 			strncpy(text, *list, size - 1);
 			XFreeStringList(list);
 		}
 	}
 	text[size - 1] = '\0';
 	XFree(name.value);
+
 	return True;
 }
 
 void
 initfont(const char *fontstr) {
-	char *def, **missing;
+	char *def, **missing, **font_names;
 	int i, n;
+	XFontStruct **xfonts;
 
 	missing = NULL;
 	if(dc.font.set)
 		XFreeFontSet(dpy, dc.font.set);
+
 	dc.font.set = XCreateFontSet(dpy, fontstr, &missing, &n, &def);
 	if(missing) {
 		while(n--)
 			fprintf(stderr, "tabbed: missing fontset: %s\n", missing[n]);
 		XFreeStringList(missing);
 	}
+
 	if(dc.font.set) {
-		XFontStruct **xfonts;
-		char **font_names;
 		dc.font.ascent = dc.font.descent = 0;
 		n = XFontsOfFontSet(dc.font.set, &xfonts, &font_names);
 		for(i = 0, dc.font.ascent = 0, dc.font.descent = 0; i < n; i++) {
@@ -509,14 +543,15 @@ initfont(const char *fontstr) {
 			dc.font.descent = MAX(dc.font.descent,(*xfonts)->descent);
 			xfonts++;
 		}
-	}
-	else {
+	} else {
 		if(dc.font.xfont)
 			XFreeFont(dpy, dc.font.xfont);
 		dc.font.xfont = NULL;
 		if(!(dc.font.xfont = XLoadQueryFont(dpy, fontstr))
-		&& !(dc.font.xfont = XLoadQueryFont(dpy, "fixed")))
+				&& !(dc.font.xfont = XLoadQueryFont(dpy, "fixed"))) {
 			die("tabbed: cannot load font: '%s'\n", fontstr);
+		}
+
 		dc.font.ascent = dc.font.xfont->ascent;
 		dc.font.descent = dc.font.xfont->descent;
 	}
@@ -530,11 +565,13 @@ isprotodel(Client *c) {
 	Bool ret = False;
 
 	if(XGetWMProtocols(dpy, c->win, &protocols, &n)) {
-		for(i = 0; !ret && i < n; i++)
+		for(i = 0; !ret && i < n; i++) {
 			if(protocols[i] == wmatom[WMDelete])
 				ret = True;
+		}
 		XFree(protocols);
 	}
+
 	return ret;
 }
 
@@ -545,11 +582,13 @@ keypress(const XEvent *e) {
 	KeySym keysym;
 
 	keysym = XkbKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0, 0);
-	for(i = 0; i < LENGTH(keys); i++)
+	for(i = 0; i < LENGTH(keys); i++) {
 		if(keysym == keys[i].keysym
-		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
-		&& keys[i].func)
+				&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
+				&& keys[i].func) {
 			keys[i].func(&(keys[i].arg));
+		}
+	}
 }
 
 void
@@ -558,6 +597,7 @@ killclient(const Arg *arg) {
 
 	if(!sel)
 		return;
+
 	if(isprotodel(sel) && !sel->closed) {
 		ev.type = ClientMessage;
 		ev.xclient.window = sel->win;
@@ -567,9 +607,9 @@ killclient(const Arg *arg) {
 		ev.xclient.data.l[1] = CurrentTime;
 		XSendEvent(dpy, sel->win, False, NoEventMask, &ev);
 		sel->closed = True;
-	}
-	else
+	} else {
 		XKillClient(dpy, sel->win);
+	}
 }
 
 void
@@ -587,18 +627,22 @@ manage(Window w) {
 		XSelectInput(dpy, w, PropertyChangeMask|StructureNotifyMask|EnterWindowMask);
 		XSync(dpy, False);
 		for(i = 0; i < LENGTH(keys); i++) {
-			if((code = XKeysymToKeycode(dpy, keys[i].keysym)))
+			if((code = XKeysymToKeycode(dpy, keys[i].keysym))) {
 				for(j = 0; j < LENGTH(modifiers); j++)
 					XGrabKey(dpy, code, keys[i].mod | modifiers[j], w,
 						 True, GrabModeAsync, GrabModeAsync);
+			}
 		}
-		c = emallocz(sizeof *c);
+
+		c = emallocz(sizeof(*c));
 		c->next = clients;
 		c->win = w;
 		clients = c;
+
 		updatetitle(c);
 		drawbar();
 		XMapRaised(dpy, w);
+
 		e.xclient.window = w;
 		e.xclient.type = ClientMessage;
 		e.xclient.message_type = wmatom[XEmbed];
@@ -609,9 +653,11 @@ manage(Window w) {
 		e.xclient.data.l[3] = win;
 		e.xclient.data.l[4] = 0;
 		XSendEvent(dpy, root, False, NoEventMask, &e);
+
 		XSync(dpy, False);
 		focus(nextfocus ? c : sel);
 		nextfocus = foreground;
+
 		if(!lastsel)
 			lastsel = c;
 	}
@@ -671,15 +717,15 @@ void
 rotate(const Arg *arg) {
 	Client *c;
 
-	if(arg->i == 0)
+	if(arg->i == 0) {
 		focus(lastsel);
-	else if(arg->i > 0) {
-		if(sel && sel->next)
+	} else if(arg->i > 0) {
+		if(sel && sel->next) {
 			focus(sel->next);
-		else
+		} else {
 			focus(clients);
-	}
-	else {
+		}
+	} else {
 		for(c = clients; c && c->next && c->next != sel; c = c->next);
 		if(c)
 			focus(c);
@@ -695,6 +741,7 @@ run(void) {
 	drawbar();
 	if(doinitspawn == True)
 		spawn(NULL);
+
 	while(running) {
 		XNextEvent(dpy, &ev);
 		if(handler[ev.type])
@@ -722,7 +769,7 @@ void
 setcmd(int argc, char *argv[]) {
 	int i;
 
-	cmd = emallocz((argc+2) * sizeof *cmd);
+	cmd = emallocz((argc+2) * sizeof(*cmd));
 	for(i = 0; i < argc; i++)
 		cmd[i] = argv[i];
 	cmd[argc] = winid;
@@ -756,12 +803,14 @@ setup(void) {
 	dc.norm[ColFG] = getcolor(normfgcolor);
 	dc.sel[ColBG] = getcolor(selbgcolor);
 	dc.sel[ColFG] = getcolor(selfgcolor);
-	dc.drawable = XCreatePixmap(dpy, root, ww, wh, DefaultDepth(dpy, screen));
+	dc.drawable = XCreatePixmap(dpy, root, ww, wh,
+			DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 	if(!dc.font.set)
 		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
-	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0, dc.norm[ColFG], dc.norm[ColBG]);
+	win = XCreateSimpleWindow(dpy, root, wx, wy, ww, wh, 0,
+			dc.norm[ColFG], dc.norm[ColBG]);
 	XMapRaised(dpy, win);
 	XSelectInput(dpy, win, SubstructureNotifyMask|FocusChangeMask|
 			ButtonPressMask|ExposureMask|KeyPressMask|
@@ -775,7 +824,7 @@ setup(void) {
 
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 
-	snprintf(winid, sizeof winid, "%lu", win);
+	snprintf(winid, sizeof(winid), "%lu", win);
 	nextfocus = foreground;
 	focus(clients);
 }
@@ -784,6 +833,7 @@ void
 sigchld(int unused) {
 	if(signal(SIGCHLD, sigchld) == SIG_ERR)
 		die("tabbed: cannot install SIGCHLD handler");
+
 	while(0 < waitpid(-1, NULL, WNOHANG));
 }
 
@@ -792,6 +842,7 @@ spawn(const Arg *arg) {
 	if(fork() == 0) {
 		if(dpy)
 			close(ConnectionNumber(dpy));
+
 		setsid();
 		if(arg && arg->v) {
 			execvp(((char **)arg->v)[0], (char **)arg->v);
@@ -813,6 +864,7 @@ textnw(const char *text, unsigned int len) {
 		XmbTextExtents(dc.font.set, text, len, NULL, &r);
 		return r.width;
 	}
+
 	return XTextWidth(dc.font.xfont, text, len);
 }
 
@@ -820,11 +872,11 @@ void
 unmanage(Client *c) {
 	Client *pc;
 
-	if(!clients)
+	if(!clients) {
 		return;
-	else if(c == clients)
+	} else if(c == clients) {
 		pc = clients = c->next;
-	else {
+	} else {
 		for(pc = clients; pc && pc->next && pc->next != c; pc = pc->next);
 		pc->next = c->next;
 	}
@@ -846,18 +898,21 @@ updatenumlockmask(void) {
 
 	numlockmask = 0;
 	modmap = XGetModifierMapping(dpy);
-	for(i = 0; i < 8; i++)
-		for(j = 0; j < modmap->max_keypermod; j++)
+	for(i = 0; i < 8; i++) {
+		for(j = 0; j < modmap->max_keypermod; j++) {
 			if(modmap->modifiermap[i * modmap->max_keypermod + j]
-			   == XKeysymToKeycode(dpy, XK_Num_Lock))
+					== XKeysymToKeycode(dpy, XK_Num_Lock)) {
 				numlockmask = (1 << i);
+			}
+		}
+	}
 	XFreeModifiermap(modmap);
 }
 
 void
 updatetitle(Client *c) {
-	if(!gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name))
-		gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
+	if(!gettextprop(c->win, wmatom[WMName], c->name, sizeof(c->name)))
+		gettextprop(c->win, XA_WM_NAME, c->name, sizeof(c->name));
 	if(sel == c)
 		XStoreName(dpy, win, c->name);
 	drawbar();
@@ -869,15 +924,25 @@ updatetitle(Client *c) {
 int
 xerror(Display *dpy, XErrorEvent *ee) {
 	if(ee->error_code == BadWindow
-	|| (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
-	|| (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
-	|| (ee->request_code == X_PolyFillRectangle && ee->error_code == BadDrawable)
-	|| (ee->request_code == X_PolySegment && ee->error_code == BadDrawable)
-	|| (ee->request_code == X_ConfigureWindow && ee->error_code == BadMatch)
-	|| (ee->request_code == X_GrabButton && ee->error_code == BadAccess)
-	|| (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
-	|| (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
+			|| (ee->request_code == X_SetInputFocus
+				&& ee->error_code == BadMatch)
+			|| (ee->request_code == X_PolyText8
+				&& ee->error_code == BadDrawable)
+			|| (ee->request_code == X_PolyFillRectangle
+				&& ee->error_code == BadDrawable)
+			|| (ee->request_code == X_PolySegment
+				&& ee->error_code == BadDrawable)
+			|| (ee->request_code == X_ConfigureWindow
+				&& ee->error_code == BadMatch)
+			|| (ee->request_code == X_GrabButton
+				&& ee->error_code == BadAccess)
+			|| (ee->request_code == X_GrabKey
+				&& ee->error_code == BadAccess)
+			|| (ee->request_code == X_CopyArea
+				&& ee->error_code == BadDrawable)) {
 		return 0;
+	}
+
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
@@ -886,8 +951,7 @@ xerror(Display *dpy, XErrorEvent *ee) {
 char *argv0;
 
 void
-usage(void)
-{
+usage(void) {
 	die("usage: %s [-dhsv] [-n name] command...\n", argv0);
 }
 
@@ -923,6 +987,7 @@ main(int argc, char *argv[]) {
 		fprintf(stderr, "tabbed: no locale support\n");
 	if(!(dpy = XOpenDisplay(NULL)))
 		die("tabbed: cannot open display\n");
+
 	setup();
 	printf("0x%lx\n", win);
 	fflush(NULL);
