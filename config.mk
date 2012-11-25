@@ -13,8 +13,8 @@ LIBS = -L/usr/lib -lc -lX11
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
-LDFLAGS = -s ${LIBS}
+CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
+LDFLAGS = -g ${LIBS}
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
@@ -22,3 +22,4 @@ LDFLAGS = -s ${LIBS}
 
 # compiler and linker
 CC = cc
+
