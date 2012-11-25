@@ -9,7 +9,7 @@ static const char selfgcolor[]  = "#ffffff";
 static const char before[]      = "<";
 static const char after[]       = ">";
 static const int  tabwidth      = 200;
-static const Bool foreground    = False;
+static const Bool foreground    = True;
 
 #define MODKEY ControlMask
 static Key keys[] = { \
