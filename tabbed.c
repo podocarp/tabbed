@@ -145,7 +145,7 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True, nextfocus, doinitspawn = True;
+static Bool running = True, nextfocus, doinitspawn = True, fillagain = False;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast];
@@ -954,6 +954,11 @@ unmanage(int c) {
 		focus(lastsel);
 	}
 
+	if(nclients == 0) {
+		if(fillagain)
+			spawn(NULL);
+	}
+
 	drawbar();
 	XSync(dpy, False);
 }
@@ -1023,7 +1028,7 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dhsv] [-n name] [-r narg] command...\n", argv0);
+	die("usage: %s [-dfhsv] [-n name] [-r narg] command...\n", argv0);
 }
 
 int
@@ -1033,6 +1038,9 @@ main(int argc, char *argv[]) {
 	ARGBEGIN {
 	case 'd':
 		detach = 1;
+		break;
+	case 'f':
+		fillagain = 1;
 		break;
 	case 'n':
 		wmname = EARGF(usage());
@@ -1052,8 +1060,10 @@ main(int argc, char *argv[]) {
 		usage();
 	} ARGEND;
 
-	if(argc < 1)
+	if(argc < 1) {
 		doinitspawn = False;
+		fillagain = False;
+	}
 
 	setcmd(argc, argv, replace);
 
