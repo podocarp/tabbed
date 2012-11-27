@@ -437,8 +437,8 @@ focus(int c) {
 
 	if(sel != c)
 		lastsel = sel;
-
 	sel = c;
+
 	drawbar();
 }
 
@@ -682,9 +682,6 @@ manage(Window w) {
 		XSync(dpy, False);
 		focus((nextfocus)? 0 : ((sel < 0)? 0 : sel));
 		nextfocus = foreground;
-
-		if(lastsel < 0)
-			lastsel = 0;
 	}
 }
 
@@ -919,45 +916,52 @@ textnw(const char *text, unsigned int len) {
 
 void
 unmanage(int c) {
-	int pc;
-
-	if(c < 0 || c >= nclients)
+	if(c < 0 || c >= nclients) {
+		drawbar();
 		return;
+	}
 
 	if(!nclients) {
 		return;
 	} else if(c == 0) {
 		/* First client. */
-		pc = 0;
 		nclients--;
 		free(clients[0]);
 		memmove(&clients[0], &clients[1], sizeof(Client *) * nclients);
 	} else if(c == nclients - 1) {
 		/* Last client. */
 		nclients--;
-		pc = nclients - 1;
 		free(clients[c]);
 		clients = erealloc(clients, sizeof(Client *) * nclients);
 	} else {
 		/* Somewhere inbetween. */
-		pc = c + 1;
 		free(clients[c]);
 		memmove(&clients[c], &clients[c+1],
 				sizeof(Client *) * (nclients - (c + 1)));
 		nclients--;
 	}
 
-	if(c == lastsel)
-		lastsel = 0;
-	if(c == sel) {
-		sel = pc;
-		focus(lastsel);
+	if(c == lastsel) {
+		lastsel = -1;
+	} else if(lastsel > c) {
+		lastsel--;
 	}
 
-	if(nclients == 0) {
-		if(fillagain)
-			spawn(NULL);
+	if(sel > c && c > 0) {
+		sel--;
+		lastsel = -1;
 	}
+	if(c == nclients && nclients > 0)
+		sel = nclients - 1;
+
+	if(lastsel > -1) {
+		focus(lastsel);
+	} else {
+		focus(sel);
+	}
+
+	if(nclients == 0 && fillagain)
+		spawn(NULL);
 
 	drawbar();
 	XSync(dpy, False);
