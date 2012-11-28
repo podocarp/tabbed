@@ -49,7 +49,7 @@
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
 
 enum { ColFG, ColBG, ColLast };                         /* color */
-enum { WMProtocols, WMDelete, WMName, XEmbed, WMLast };                 /* default atoms */
+enum { WMProtocols, WMDelete, WMName, XEmbed, WMLast }; /* default atoms */
 
 typedef union {
 	int i;
