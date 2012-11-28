@@ -1,7 +1,9 @@
-/* See LICENSE file for copyright and license details.
+/*
+ * See LICENSE file for copyright and license details.
  *
  * To understand tabbed, start reading main().
  */
+
 #include <sys/wait.h>
 #include <locale.h>
 #include <stdarg.h>
