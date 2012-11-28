@@ -160,6 +160,7 @@ static char **cmd = NULL;
 static char *wmname = "tabbed";
 
 char *argv0;
+
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
