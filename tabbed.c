@@ -49,7 +49,8 @@
 #define TEXTW(x)                 (textnw(x, strlen(x)) + dc.font.height)
 
 enum { ColFG, ColBG, ColLast };                         /* color */
-enum { WMProtocols, WMDelete, WMName, XEmbed, WMLast }; /* default atoms */
+enum { WMProtocols, WMDelete, WMName, WMState, WMFullscreen,
+	XEmbed, WMLast };                               /* default atoms */
 
 typedef union {
 	int i;
@@ -103,6 +104,7 @@ static void expose(const XEvent *e);
 static void focus(int c);
 static void focusin(const XEvent *e);
 static void focusonce(const Arg *arg);
+static void fullscreen(const Arg *arg);
 static int getclient(Window w);
 static unsigned long getcolor(const char *colstr);
 static int getfirsttab(void);
@@ -461,6 +463,20 @@ focusin(const XEvent *e) {
 void
 focusonce(const Arg *arg) {
 	nextfocus = True;
+}
+
+void
+fullscreen(const Arg *arg) {
+	XEvent e;
+
+	e.type = ClientMessage;
+	e.xclient.window = win;
+	e.xclient.message_type = wmatom[WMState];
+	e.xclient.format = 32;
+	e.xclient.data.l[0] = 2;
+	e.xclient.data.l[1] = wmatom[WMFullscreen];
+	e.xclient.data.l[2] = 0;
+	XSendEvent(dpy, root, False, SubstructureNotifyMask, &e);
 }
 
 int
@@ -839,6 +855,9 @@ setup(void) {
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[XEmbed] = XInternAtom(dpy, "_XEMBED", False);
 	wmatom[WMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+	wmatom[WMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
+	wmatom[WMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN",
+			False);
 
 	/* init appearance */
 	wx = 0;
