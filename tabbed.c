@@ -913,6 +913,8 @@ setup(void) {
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 
 	snprintf(winid, sizeof(winid), "%lu", win);
+	setenv("XEMBED", winid, 1);
+
 	nextfocus = foreground;
 	focus(-1);
 }
