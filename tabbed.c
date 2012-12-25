@@ -147,7 +147,8 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 };
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask = 0;
-static Bool running = True, nextfocus, doinitspawn = True, fillagain = False;
+static Bool running = True, nextfocus, doinitspawn = True,
+	    fillagain = False, closelastclient = False;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast];
@@ -980,8 +981,13 @@ unmanage(int c) {
 		focus(sel);
 	}
 
-	if(nclients == 0 && fillagain)
-		spawn(NULL);
+	if(nclients == 0) {
+		if (closelastclient) {
+			running = False;
+		} else if (fillagain && running) {
+			spawn(NULL);
+		}
+	}
 
 	drawbar();
 	XSync(dpy, False);
@@ -1057,14 +1063,18 @@ usage(void) {
 
 int
 main(int argc, char *argv[]) {
-	int detach = 0, replace = 0;
+	Bool detach = False;
+	int replace = 0;
 
 	ARGBEGIN {
+	case 'c':
+		closelastclient = True;
+		fillagain = False;
 	case 'd':
-		detach = 1;
+		detach = True;
 		break;
 	case 'f':
-		fillagain = 1;
+		fillagain = True;
 		break;
 	case 'n':
 		wmname = EARGF(usage());
@@ -1101,9 +1111,9 @@ main(int argc, char *argv[]) {
 	fflush(NULL);
 
 	if(detach) {
-		if(fork() == 0)
+		if(fork() == 0) {
 			fclose(stdout);
-		else {
+		} else {
 			if(dpy)
 				close(ConnectionNumber(dpy));
 			return EXIT_SUCCESS;

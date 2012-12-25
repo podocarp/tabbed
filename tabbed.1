@@ -3,6 +3,7 @@
 tabbed \- generic tabbed interface
 .SH SYNOPSIS
 .B tabbed
+.RB [ \-c ]
 .RB [ \-d ]
 .RB [ \-h ]
 .RB [ \-s ]
@@ -21,12 +22,15 @@ disabled by providing the -s parameter. If no command is provided
 tabbed will just print its xid and run no command.
 .SH OPTIONS
 .TP
+.B \-c
+close tabbed when the last tab is closed. Mutually exclusive with -f.
+.TP
 .B \-d
 detaches tabbed from the terminal and prints its XID to stdout.
 .TP
 .B \-f
 fill up tabbed again by spawning the provided command, when the last tab is
-closed.
+closed. Mutually exclusive with -c.
 .TP
 .B \-h
 will print the usage of tabbed.
