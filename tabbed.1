@@ -10,6 +10,8 @@ tabbed \- generic tabbed interface
 .RB [ \-v ]
 .RB [ \-n
 .IR name ]
+.RB [ \-p
+.IR [ s +/- ] pos ]
 .RB [ \-r
 .IR narg ]
 .IR [ command ... ]
@@ -38,6 +40,16 @@ will print the usage of tabbed.
 .BI \-n " name"
 will set the WM_CLASS attribute to
 .I name.
+.TP
+.BI \-p " [ s +/-] pos"
+will set the absolute or relative position of where to start a new tab. When
+.I pos
+is is given without 's' in front it is an absolute position. Then negative
+numbers will be the position from the last tab, where -1 is the last tab.
+If 's' is given, then
+.I pos
+is a relative position to the current selected tab. If this reaches the limits
+of the tabs; those limits then apply.
 .TP
 .BI \-r " narg"
 will replace the

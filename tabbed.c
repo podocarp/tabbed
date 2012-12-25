@@ -1089,7 +1089,7 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dfhsv] [-n name] [-p [+/-]pos] [-r narg]"
+	die("usage: %s [-dfhsv] [-n name] [-p [s+/-]pos] [-r narg]"
 		" command...\n", argv0);
 }
 
@@ -1114,9 +1114,12 @@ main(int argc, char *argv[]) {
 		break;
 	case 'p':
 		pstr = EARGF(usage());
-		if (pstr[0] == '-' || pstr[0] == '+')
+		if(pstr[0] == 's') {
 			npisrelative = True;
-		newposition = atoi(pstr);
+			newposition = atoi(&pstr[1]);
+		} else {
+			newposition = atoi(pstr);
+		}
 		break;
 	case 'r':
 		replace = atoi(EARGF(usage()));
