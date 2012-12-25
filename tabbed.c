@@ -439,11 +439,14 @@ focus(int c) {
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	XStoreName(dpy, win, clients[c]->name);
 
-	if(sel != c)
+	/* If sel is already c, change nothing. */
+	if(sel != c) {
 		lastsel = sel;
-	sel = c;
+		sel = c;
+	}
 
 	drawbar();
+	XSync(dpy, False);
 }
 
 void
@@ -647,7 +650,7 @@ void
 manage(Window w) {
 	updatenumlockmask();
 	{
-		int i, j;
+		int i, j, nextpos;
 		unsigned int modifiers[] = { 0, LockMask, numlockmask,
 			numlockmask|LockMask };
 		KeyCode code;
@@ -676,13 +679,29 @@ manage(Window w) {
 
 		nclients++;
 		clients = erealloc(clients, sizeof(Client *) * nclients);
-		if(nclients > 1) {
-			memmove(&clients[1], &clients[0],
-					sizeof(Client *) * (nclients - 1));
-		}
-		clients[0] = c;
 
-		updatetitle(0);
+		if(npisrelative) {
+			nextpos = sel + newposition;
+		} else {
+			if(newposition < 0) {
+				nextpos = nclients - newposition;
+			} else {
+				nextpos = newposition;
+			}
+		}
+		if(nextpos >= nclients)
+			nextpos = nclients - 1;
+		if(nextpos < 0)
+			nextpos = 0;
+
+		if(nclients > 1 && nextpos < nclients - 1) {
+			memmove(&clients[nextpos + 1], &clients[nextpos],
+					sizeof(Client *) *
+					(nclients - nextpos - 1));
+		}
+		clients[nextpos] = c;
+		updatetitle(nextpos);
+
 		XLowerWindow(dpy, w);
 		XMapWindow(dpy, w);
 
@@ -698,7 +717,11 @@ manage(Window w) {
 		XSendEvent(dpy, root, False, NoEventMask, &e);
 
 		XSync(dpy, False);
-		focus((nextfocus)? 0 : ((sel < 0)? 0 : sel));
+
+		/* Adjust sel before focus does set it to lastsel. */
+		if(sel >= nextpos)
+			sel++;
+		focus((nextfocus)? nextpos : ((sel < 0)? 0 : sel));
 		nextfocus = foreground;
 	}
 }
@@ -939,6 +962,7 @@ void
 unmanage(int c) {
 	if(c < 0 || c >= nclients) {
 		drawbar();
+		XSync(dpy, False);
 		return;
 	}
 
@@ -962,30 +986,35 @@ unmanage(int c) {
 		nclients--;
 	}
 
-	if(c == lastsel) {
+	if(nclients <= 0) {
+		sel = -1;
 		lastsel = -1;
-	} else if(lastsel > c) {
-		lastsel--;
-	}
 
-	if(sel > c && c > 0) {
-		sel--;
-		lastsel = -1;
-	}
-	if(c == nclients && nclients > 0)
-		sel = nclients - 1;
-
-	if(lastsel > -1) {
-		focus(lastsel);
-	} else {
-		focus(sel);
-	}
-
-	if(nclients == 0) {
 		if (closelastclient) {
 			running = False;
 		} else if (fillagain && running) {
 			spawn(NULL);
+		}
+	} else {
+		if(c == lastsel) {
+			lastsel = -1;
+		} else if(lastsel > c) {
+			lastsel--;
+		}
+
+		if(c == sel) {
+			if(lastsel > 0 && lastsel != sel) {
+				focus(lastsel);
+			} else {
+				focus(0);
+			}
+		} else {
+			if(sel > c)
+				sel -= 1;
+			if(sel >= nclients)
+				sel = nclients - 1;
+
+			focus(sel);
 		}
 	}
 
@@ -1058,13 +1087,15 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dfhsv] [-n name] [-r narg] command...\n", argv0);
+	die("usage: %s [-dfhsv] [-n name] [-p [+/-]pos] [-r narg]"
+		" command...\n", argv0);
 }
 
 int
 main(int argc, char *argv[]) {
 	Bool detach = False;
 	int replace = 0;
+	char *pstr;
 
 	ARGBEGIN {
 	case 'c':
@@ -1078,6 +1109,12 @@ main(int argc, char *argv[]) {
 		break;
 	case 'n':
 		wmname = EARGF(usage());
+		break;
+	case 'p':
+		pstr = EARGF(usage());
+		if (pstr[0] == '-' || pstr[0] == '+')
+			npisrelative = True;
+		newposition = atoi(pstr);
 		break;
 	case 'r':
 		replace = atoi(EARGF(usage()));

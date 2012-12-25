@@ -11,6 +11,14 @@ static const char after[]       = ">";
 static const int  tabwidth      = 200;
 static const Bool foreground    = True;
 
+/*
+ * Where to place a new tab when it is opened. When npisrelative is True,
+ * then the current position is changed + newposition. If npisrelative
+ * is False, then newposition is an absolute position.
+ */
+static int  newposition   = 0;
+static Bool npisrelative  = False;
+
 #define MODKEY ControlMask
 static Key keys[] = { \
 	/* modifier                     key        function        argument */
