@@ -730,7 +730,7 @@ void
 maprequest(const XEvent *e) {
 	const XMapRequestEvent *ev = &e->xmaprequest;
 
-	if(getclient(ev->window) > -1)
+	if(getclient(ev->window) < 0)
 		manage(ev->window);
 }
 
