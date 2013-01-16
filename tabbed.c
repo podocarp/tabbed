@@ -129,6 +129,7 @@ static void unmanage(int c);
 static void updatenumlockmask(void);
 static void updatetitle(int c);
 static int xerror(Display *dpy, XErrorEvent *ee);
+static void xsettitle(Window w, const char *str);
 
 /* variables */
 static int screen;
@@ -423,7 +424,7 @@ focus(int c) {
 		for(i = 0, n = strlen(buf); cmd[i] && n < sizeof(buf); i++)
 			n += snprintf(&buf[n], sizeof(buf) - n, " %s", cmd[i]);
 
-		XStoreName(dpy, win, buf);
+		xsettitle(win, buf);
 		XRaiseWindow(dpy, win);
 
 		return;
@@ -437,7 +438,7 @@ focus(int c) {
 	XSetInputFocus(dpy, clients[c]->win, RevertToParent, CurrentTime);
 	sendxembed(c, XEMBED_FOCUS_IN, XEMBED_FOCUS_CURRENT, 0, 0);
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
-	XStoreName(dpy, win, clients[c]->name);
+	xsettitle(win, clients[c]->name);
 
 	/* If sel is already c, change nothing. */
 	if(sel != c) {
@@ -1051,7 +1052,7 @@ updatetitle(int c) {
 				clients[c]->name, sizeof(clients[c]->name));
 	}
 	if(sel == c)
-		XStoreName(dpy, win, clients[c]->name);
+		xsettitle(win, clients[c]->name);
 	drawbar();
 }
 
@@ -1083,6 +1084,18 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
 			ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
+}
+
+void
+xsettitle(Window w, const char *str) {
+	XTextProperty xtp;
+
+	if(XmbTextListToTextProperty(dpy, (char **)&str, 1, XCompoundTextStyle,
+				&xtp) == Success) {
+		XSetTextProperty(dpy, w, &xtp, wmatom[WMName]);
+		XSetTextProperty(dpy, w, &xtp, XA_WM_NAME);
+		XFree(xtp.value);
+	}
 }
 
 char *argv0;
