@@ -172,7 +172,7 @@ buttonpress(const XEvent *e) {
 	int i;
 	Arg arg;
 
-	if(getfirsttab() != 0 && ev->x < TEXTW(before))
+	if((getfirsttab() != 0 && ev->x < TEXTW(before)) || ev->x < 0)
 		return;
 
 	for(i = 0; i < nclients; i++) {
