@@ -1010,6 +1010,7 @@ unmanage(int c) {
 				focus(lastsel);
 			} else {
 				focus(0);
+				lastsel = 1;
 			}
 		} else {
 			if(sel > c)
