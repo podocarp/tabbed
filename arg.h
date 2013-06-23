@@ -1,7 +1,4 @@
-/*
- * Copy me if you can.
- * by 20h
- */
+/* See the LICENSE file for copyright and license details. */
 
 #ifndef __ARG_H__
 #define __ARG_H__
