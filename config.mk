@@ -13,7 +13,7 @@ LIBS = -L/usr/lib -lc -lX11
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" -D_BSD_SOURCE
-CFLAGS = -std=c99 -pedantic -Wall -Wextra -O0 ${INCS} ${CPPFLAGS}
+CFLAGS = -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
 
 # Solaris
