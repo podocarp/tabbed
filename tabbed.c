@@ -856,6 +856,8 @@ setcmd(int argc, char *argv[], int replace) {
 	int i;
 
 	cmd = emallocz((argc+2) * sizeof(*cmd));
+	if (argc == 0)
+		return;
 	for(i = 0; i < argc; i++)
 		cmd[i] = argv[i];
 	cmd[(replace > 0)? replace : argc] = winid;
