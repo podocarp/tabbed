@@ -171,12 +171,18 @@ void
 buttonpress(const XEvent *e) {
 	const XButtonPressedEvent *ev = &e->xbutton;
 	int i;
+	int fc;
 	Arg arg;
 
-	if((getfirsttab() != 0 && ev->x < TEXTW(before)) || ev->x < 0)
+	fc = getfirsttab();
+
+	if((fc > 0 && ev->x < TEXTW(before)) || ev->x < 0)
 		return;
 
-	for(i = 0; i < nclients; i++) {
+	if(ev->y < 0 || ev-> y > bh)
+		return;
+
+	for(i = (fc > 0) ? fc : 0; i < nclients; i++) {
 		if(clients[i]->tabx > ev->x) {
 			switch(ev->button) {
 			case Button1:
@@ -1053,7 +1059,11 @@ unmanage(int c) {
 		}
 
 		if(c == sel) {
-			if(lastsel > 0 && lastsel != sel) {
+			/* Note that focus() will never set lastsel == sel,
+			 * so if here lastsel == sel, it was decreased by above if() clause
+			 * and was actually (sel + 1) before.
+			 */
+			if(lastsel > 0) {
 				focus(lastsel);
 			} else {
 				focus(0);
