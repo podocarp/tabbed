@@ -8,6 +8,8 @@ tabbed \- generic tabbed interface
 .RB [ \-h ]
 .RB [ \-s ]
 .RB [ \-v ]
+.RB [ \-g
+.IR geometry ]
 .RB [ \-n
 .IR name ]
 .RB [ \-p
@@ -36,6 +38,12 @@ closed. Mutually exclusive with -c.
 .TP
 .B \-h
 will print the usage of tabbed.
+.TP
+.BI \-g " geometry"
+defines the X11 geometry string, which will fixate the height and width of st.
+Them form is [=][<width>{xX}<height>][{+-}<xoffset>{+-}<yoffset>]. See
+.BR XParseGeometry (3)
+for further details.
 .TP
 .BI \-n " name"
 will set the WM_CLASS attribute to

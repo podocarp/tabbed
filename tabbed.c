@@ -160,6 +160,7 @@ static int (*xerrorxlib)(Display *, XErrorEvent *);
 static char winid[64];
 static char **cmd = NULL;
 static char *wmname = "tabbed";
+static const char *geometry = NULL;
 
 char *argv0;
 
@@ -866,6 +867,10 @@ setcmd(int argc, char *argv[], int replace) {
 
 void
 setup(void) {
+	int bitm, tx, ty, tw, th, dh, dw, isfixed;
+	XClassHint class_hint;
+	XSizeHints *size_hint;
+
 	/* clean up any zombies immediately */
 	sigchld(0);
 
@@ -889,6 +894,34 @@ setup(void) {
 	wy = 0;
 	ww = 800;
 	wh = 600;
+	isfixed = 0;
+
+	if(geometry) {
+		tx = ty = tw = th = 0;
+		bitm = XParseGeometry(geometry, &tx, &ty, (unsigned *)&tw,
+				(unsigned *)&th);
+		if(bitm & XValue)
+			wx = tx;
+		if(bitm & YValue)
+			wy = ty;
+		if(bitm & WidthValue)
+			ww = tw;
+		if(bitm & HeightValue)
+			wh = th;
+		if(bitm & XNegative && wx == 0)
+			wx = -1;
+		if(bitm & YNegative && wy == 0)
+			wy = -1;
+		if(bitm & (HeightValue|WidthValue))
+			isfixed = 1;
+
+		dw = DisplayWidth(dpy, screen);
+		dh = DisplayHeight(dpy, screen);
+		if(wx < 0)
+			wx = dw + wx - ww - 1;
+		if(wy < 0)
+			wy = dh + wy - wh - 1;
+	}
 
 	dc.norm[ColBG] = getcolor(normbgcolor);
 	dc.norm[ColFG] = getcolor(normfgcolor);
@@ -908,10 +941,22 @@ setup(void) {
 			StructureNotifyMask|SubstructureRedirectMask);
 	xerrorxlib = XSetErrorHandler(xerror);
 
-	XClassHint class_hint;
 	class_hint.res_name = wmname;
 	class_hint.res_class = "tabbed";
 	XSetClassHint(dpy, win, &class_hint);
+
+	size_hint = XAllocSizeHints();
+	if(!isfixed) {
+		size_hint->flags = PSize;
+		size_hint->height = wh;
+		size_hint->width = ww;
+	} else {
+		size_hint->flags = PMaxSize | PMinSize;
+		size_hint->min_width = size_hint->max_width = ww;
+		size_hint->min_height = size_hint->max_height = wh;
+	}
+	XSetWMProperties(dpy, win, NULL, NULL, NULL, 0, size_hint, NULL, NULL);
+	XFree(size_hint);
 
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 
@@ -1105,8 +1150,8 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dfhsv] [-n name] [-p [s+/-]pos] [-r narg]"
-		" command...\n", argv0);
+	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos] "
+		"[-r narg] command...\n", argv0);
 }
 
 int
@@ -1124,6 +1169,9 @@ main(int argc, char *argv[]) {
 		break;
 	case 'f':
 		fillagain = True;
+		break;
+	case 'g':
+		geometry = EARGF(usage());
 		break;
 	case 'n':
 		wmname = EARGF(usage());
