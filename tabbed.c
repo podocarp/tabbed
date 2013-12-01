@@ -48,7 +48,7 @@
 
 enum { ColFG, ColBG, ColLast };                         /* color */
 enum { WMProtocols, WMDelete, WMName, WMState, WMFullscreen,
-	XEmbed, WMSelectTab, WMLast };                      /* default atoms */
+	XEmbed, WMLast };                               /* default atoms */
 
 typedef union {
 	int i;
@@ -237,9 +237,6 @@ clientmessage(const XEvent *e) {
 	if(ev->message_type == wmatom[WMProtocols]
 			&& ev->data.l[0] == wmatom[WMDelete]) {
 		running = False;
-	} else if(ev->message_type == wmatom[WMSelectTab]) {
-		Arg a = {.i = ev->data.l[0]};
-		move(&a);
 	}
 }
 
@@ -895,8 +892,8 @@ setup(void) {
 	wmatom[XEmbed] = XInternAtom(dpy, "_XEMBED", False);
 	wmatom[WMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
 	wmatom[WMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
-	wmatom[WMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-	wmatom[WMSelectTab] = XInternAtom(dpy, "_TABBED_SELECT_TAB", False);
+	wmatom[WMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN",
+			False);
 
 	/* init appearance */
 	wx = 0;
