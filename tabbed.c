@@ -1197,8 +1197,8 @@ char *argv0;
 
 void
 usage(void) {
-	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos] "
-		"[-r narg] command...\n", argv0);
+	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos] [-r narg] "
+		"[-u color] [-U color] [-t color] [-T color] command...\n", argv0);
 }
 
 int
@@ -1211,6 +1211,7 @@ main(int argc, char *argv[]) {
 	case 'c':
 		closelastclient = True;
 		fillagain = False;
+		break;
 	case 'd':
 		detach = True;
 		break;
@@ -1242,6 +1243,19 @@ main(int argc, char *argv[]) {
 		die("tabbed-"VERSION", © 2009-2012"
 			" tabbed engineers, see LICENSE"
 			" for details.\n");
+		break;
+	case 't':
+		selbgcolor = EARGF(usage());
+		break;
+	case 'T':
+		selfgcolor = EARGF(usage());
+		break;
+	case 'u':
+		normbgcolor = EARGF(usage());
+		break;
+	case 'U':
+		normfgcolor = EARGF(usage());
+		break;
 	default:
 	case 'h':
 		usage();
