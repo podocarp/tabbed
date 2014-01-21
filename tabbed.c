@@ -1253,7 +1253,7 @@ main(int argc, char *argv[]) {
 		normfgcolor = EARGF(usage());
 		break;
 	case 'v':
-		die("tabbed-"VERSION", © 2009-2012"
+		die("tabbed-"VERSION", © 2009-2014"
 			" tabbed engineers, see LICENSE"
 			" for details.\n");
 		break;
