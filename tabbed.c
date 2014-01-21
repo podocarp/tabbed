@@ -1240,11 +1240,6 @@ main(int argc, char *argv[]) {
 	case 's':
 		doinitspawn = False;
 		break;
-	case 'v':
-		die("tabbed-"VERSION", © 2009-2012"
-			" tabbed engineers, see LICENSE"
-			" for details.\n");
-		break;
 	case 't':
 		selbgcolor = EARGF(usage());
 		break;
@@ -1256,6 +1251,11 @@ main(int argc, char *argv[]) {
 		break;
 	case 'U':
 		normfgcolor = EARGF(usage());
+		break;
+	case 'v':
+		die("tabbed-"VERSION", © 2009-2012"
+			" tabbed engineers, see LICENSE"
+			" for details.\n");
 		break;
 	default:
 	case 'h':

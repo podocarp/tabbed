@@ -14,6 +14,14 @@ tabbed \- generic tabbed interface
 .IR name ]
 .RB [ \-p
 .IR [ s +/- ] pos ]
+.RB [ \-t
+.IR selbgcol ]
+.RB [ \-T
+.IR selfgcol ]
+.RB [ \-u
+.IR normbgcol ]
+.RB [ \-U
+.IR normfgcol ]
 .RB [ \-r
 .IR narg ]
 .IR [ command ... ]
@@ -70,19 +78,19 @@ with the window id, rather than appending it to the end.
 .B \-s
 will disable automatic spawning of the command.
 .TP
-.BI \-t " color"
+.BI \-t " selbgcol"
 defines the selected background color.
 .IR #RGB ,
 .IR #RRGGBB ,
 and X color names are supported.
 .TP
-.BI \-T " color"
+.BI \-T " selfgbcol"
 defines the selected foreground color.
 .TP
-.BI \-u " color"
+.BI \-u " normbgcol"
 defines the normal background color.
 .TP
-.BI \-U " color"
+.BI \-U " normfgcol"
 defines the normal foreground color.
 .TP
 .B \-v
