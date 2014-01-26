@@ -1089,8 +1089,8 @@ unmanage(int c) {
 			spawn(NULL);
 		}
 	} else {
-		if(c == lastsel) {
-			lastsel = -1;
+		if(c && lastsel >= nclients) {
+			lastsel = nclients - 1;
 		} else if(lastsel > c) {
 			lastsel--;
 		}
