@@ -1094,7 +1094,6 @@ unmanage(int c) {
 		} else if(lastsel > c) {
 			lastsel--;
 		}
-		lastsel = MIN(lastsel, nclients - 1);
 
 		if(c == sel) {
 			/* Note that focus() will never set lastsel == sel,
