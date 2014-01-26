@@ -1059,9 +1059,10 @@ unmanage(int c) {
 		return;
 	}
 
-	if(!nclients) {
+	if(!nclients)
 		return;
-	} else if(c == 0) {
+
+	if(c == 0) {
 		/* First client. */
 		nclients--;
 		free(clients[0]);
@@ -1080,35 +1081,25 @@ unmanage(int c) {
 	}
 
 	if(nclients <= 0) {
-		sel = -1;
-		lastsel = -1;
+		lastsel = sel = -1;
 
-		if (closelastclient) {
+		if(closelastclient) {
 			running = False;
-		} else if (fillagain && running) {
+		} else if(fillagain && running) {
 			spawn(NULL);
 		}
 	} else {
-		if(c && lastsel >= nclients) {
+		if(lastsel >= nclients) {
 			lastsel = nclients - 1;
 		} else if(lastsel > c) {
 			lastsel--;
 		}
 
 		if(c == sel) {
-			/* Note that focus() will never set lastsel == sel,
-			 * so if here lastsel == sel, it was decreased by above if() clause
-			 * and was actually (sel + 1) before.
-			 */
-			if(lastsel > 0) {
-				focus(lastsel);
-			} else {
-				focus(0);
-				lastsel = 1;
-			}
+			focus(lastsel);
 		} else {
 			if(sel > c)
-				sel -= 1;
+				sel--;
 			if(sel >= nclients)
 				sel = nclients - 1;
 
