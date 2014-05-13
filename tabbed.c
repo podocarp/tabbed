@@ -66,6 +66,7 @@ typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
+	unsigned long urg[ColLast];
 	Drawable drawable;
 	GC gc;
 	struct {
@@ -81,7 +82,7 @@ typedef struct Client {
 	char name[256];
 	Window win;
 	int tabx;
-	Bool mapped;
+	Bool urgent;
 	Bool closed;
 } Client;
 
@@ -351,7 +352,7 @@ drawbar(void) {
 				dc.w = width - (n - 1) * tabwidth;
 			}
 		} else {
-			col = dc.norm;
+			col = clients[c]->urgent ? dc.urg : dc.norm;
 		}
 		drawtext(clients[c]->name, col);
 		dc.x += dc.w;
@@ -427,6 +428,7 @@ void
 focus(int c) {
 	char buf[BUFSIZ] = "tabbed-"VERSION" ::";
 	size_t i, n;
+	XWMHints* wmh;
 
 	/* If c, sel and clients are -1, raise tabbed-win itself */
 	if(nclients == 0) {
@@ -454,6 +456,12 @@ focus(int c) {
 	if(sel != c) {
 		lastsel = sel;
 		sel = c;
+		if(clients[c]->urgent && (wmh = XGetWMHints(dpy, clients[c]->win))) {
+			wmh->flags &= ~XUrgencyHint;
+			XSetWMHints(dpy, clients[c]->win, wmh);
+			clients[c]->urgent = False;
+			XFree(wmh);
+		}
 	}
 
 	drawbar();
@@ -797,6 +805,7 @@ movetab(const Arg *arg) {
 void
 propertynotify(const XEvent *e) {
 	const XPropertyEvent *ev = &e->xproperty;
+	XWMHints *wmh;
 	int c;
 	char* selection = NULL;
 	Arg arg;
@@ -811,6 +820,21 @@ propertynotify(const XEvent *e) {
 			arg.v = cmd;
 			spawn(&arg);
 		}
+	} else if(ev->state == PropertyNewValue && ev->atom == XA_WM_HINTS
+			&& (c = getclient(ev->window)) > -1
+			&& (wmh = XGetWMHints(dpy, clients[c]->win))) {
+		if(wmh->flags & XUrgencyHint) {
+			if(c != sel) {
+				clients[c]->urgent = True;
+				drawbar();
+			}
+			XFree(wmh);
+			if((wmh = XGetWMHints(dpy, win))) {
+				wmh->flags |= XUrgencyHint;
+				XSetWMHints(dpy, win, wmh);
+			}
+		}
+		XFree(wmh);
 	} else if(ev->state != PropertyDelete && ev->atom == XA_WM_NAME
 			&& (c = getclient(ev->window)) > -1) {
 		updatetitle(c);
@@ -910,6 +934,7 @@ setcmd(int argc, char *argv[], int replace) {
 void
 setup(void) {
 	int bitm, tx, ty, tw, th, dh, dw, isfixed;
+	XWMHints *wmh;
 	XClassHint class_hint;
 	XSizeHints *size_hint;
 
@@ -969,6 +994,8 @@ setup(void) {
 	dc.norm[ColFG] = getcolor(normfgcolor);
 	dc.sel[ColBG] = getcolor(selbgcolor);
 	dc.sel[ColFG] = getcolor(selfgcolor);
+	dc.urg[ColBG] = getcolor(urgbgcolor);
+	dc.urg[ColFG] = getcolor(urgfgcolor);
 	dc.drawable = XCreatePixmap(dpy, root, ww, wh,
 			DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
@@ -997,8 +1024,10 @@ setup(void) {
 		size_hint->min_width = size_hint->max_width = ww;
 		size_hint->min_height = size_hint->max_height = wh;
 	}
-	XSetWMProperties(dpy, win, NULL, NULL, NULL, 0, size_hint, NULL, NULL);
+	wmh = XAllocWMHints();
+	XSetWMProperties(dpy, win, NULL, NULL, NULL, 0, size_hint, wmh, NULL);
 	XFree(size_hint);
+	XFree(wmh);
 
 	XSetWMProtocols(dpy, win, &wmatom[WMDelete], 1);
 
