@@ -1218,7 +1218,8 @@ char *argv0;
 void
 usage(void) {
 	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos] [-r narg] "
-		"[-u color] [-U color] [-t color] [-T color] command...\n", argv0);
+		"[-o color] [-O color] [-t color] [-T color] [-u color] [-U color] "
+		"command...\n", argv0);
 }
 
 int
@@ -1259,6 +1260,12 @@ main(int argc, char *argv[]) {
 	case 's':
 		doinitspawn = False;
 		break;
+	case 'o':
+		normbgcolor = EARGF(usage());
+		break;
+	case 'O':
+		normfgcolor = EARGF(usage());
+		break;
 	case 't':
 		selbgcolor = EARGF(usage());
 		break;
@@ -1266,10 +1273,10 @@ main(int argc, char *argv[]) {
 		selfgcolor = EARGF(usage());
 		break;
 	case 'u':
-		normbgcolor = EARGF(usage());
+		urgbgcolor = EARGF(usage());
 		break;
 	case 'U':
-		normfgcolor = EARGF(usage());
+		urgfgcolor = EARGF(usage());
 		break;
 	case 'v':
 		die("tabbed-"VERSION", © 2009-2014"
