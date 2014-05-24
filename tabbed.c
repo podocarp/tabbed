@@ -97,7 +97,7 @@ static void destroynotify(const XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar(void);
 static void drawtext(const char *text, unsigned long col[ColLast]);
-static void *emallocz(size_t size);
+static void *ecalloc(size_t n, size_t size);
 static void *erealloc(void *o, size_t size);
 static void expose(const XEvent *e);
 static void focus(int c);
@@ -399,11 +399,11 @@ drawtext(const char *text, unsigned long col[ColLast]) {
 }
 
 void *
-emallocz(size_t size) {
+ecalloc(size_t n, size_t size) {
 	void *p;
 
-	if(!(p = calloc(1, size)))
-		die("tabbed: cannot malloc\n");
+	if(!(p = calloc(n, size)))
+		die("tabbed: cannot calloc\n");
 	return p;
 }
 
@@ -713,7 +713,7 @@ manage(Window w) {
 			}
 		}
 
-		c = emallocz(sizeof(*c));
+		c = ecalloc(1, sizeof *c);
 		c->win = w;
 
 		nclients++;
@@ -921,7 +921,7 @@ void
 setcmd(int argc, char *argv[], int replace) {
 	int i;
 
-	cmd = emallocz((argc+3) * sizeof(*cmd));
+	cmd = ecalloc(argc + 3, sizeof *cmd);
 	if (argc == 0)
 		return;
 	for(i = 0; i < argc; i++)
