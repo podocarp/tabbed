@@ -452,16 +452,16 @@ focus(int c) {
 	sendxembed(c, XEMBED_WINDOW_ACTIVATE, 0, 0, 0);
 	xsettitle(win, clients[c]->name);
 
-	/* If sel is already c, change nothing. */
 	if(sel != c) {
 		lastsel = sel;
 		sel = c;
-		if(clients[c]->urgent && (wmh = XGetWMHints(dpy, clients[c]->win))) {
-			wmh->flags &= ~XUrgencyHint;
-			XSetWMHints(dpy, clients[c]->win, wmh);
-			clients[c]->urgent = False;
-			XFree(wmh);
-		}
+	}
+
+	if(clients[c]->urgent && (wmh = XGetWMHints(dpy, clients[c]->win))) {
+		wmh->flags &= ~XUrgencyHint;
+		XSetWMHints(dpy, clients[c]->win, wmh);
+		clients[c]->urgent = False;
+		XFree(wmh);
 	}
 
 	drawbar();
