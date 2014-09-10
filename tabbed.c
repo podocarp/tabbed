@@ -93,6 +93,7 @@ static void clientmessage(const XEvent *e);
 static void configurenotify(const XEvent *e);
 static void configurerequest(const XEvent *e);
 static void createnotify(const XEvent *e);
+static void unmapnotify(const XEvent *e);
 static void destroynotify(const XEvent *e);
 static void die(const char *errstr, ...);
 static void drawbar(void);
@@ -141,6 +142,7 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 	[ConfigureNotify] = configurenotify,
 	[ConfigureRequest] = configurerequest,
 	[CreateNotify] = createnotify,
+	[UnmapNotify] = unmapnotify,
 	[DestroyNotify] = destroynotify,
 	[Expose] = expose,
 	[FocusIn] = focusin,
@@ -283,6 +285,15 @@ createnotify(const XEvent *e) {
 
 	if(ev->window != win && getclient(ev->window) < 0)
 		manage(ev->window);
+}
+
+void
+unmapnotify(const XEvent *e) {
+	const XUnmapEvent *ev = &e->xunmap;
+	int c;
+
+	if((c = getclient(ev->window)) > -1)
+		unmanage(c);
 }
 
 void
