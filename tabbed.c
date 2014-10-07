@@ -795,19 +795,19 @@ movetab(const Arg *arg) {
 	int c;
 	Client *new;
 
-	if(sel < 0 || (arg->i == 0))
-		return;
-
-	c = sel + arg->i;
-	while(c >= nclients)
-		c -= nclients;
-	while(c < 0)
+	c = (sel + arg->i) % nclients;
+	if(c < 0)
 		c += nclients;
 
-	new = clients[c];
-	clients[c] = clients[sel];
-	clients[sel] = new;
+	if(sel < 0 || (c == sel))
+		return;
 
+	new = clients[sel];
+	if(sel < c)
+		memmove(&clients[sel], &clients[sel+1], sizeof(Client *) * (c - sel));
+	else
+		memmove(&clients[c+1], &clients[c], sizeof(Client *) * (sel - c));
+	clients[c] = new;
 	sel = c;
 
 	drawbar();
