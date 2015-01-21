@@ -179,15 +179,13 @@ buttonpress(const XEvent *e) {
 	int fc;
 	Arg arg;
 
-	fc = getfirsttab();
-
-	if((fc > 0 && ev->x < TEXTW(before)) || ev->x < 0)
+	if(ev->y < 0 || ev->y > bh)
 		return;
 
-	if(ev->y < 0 || ev-> y > bh)
+	if(((fc = getfirsttab()) > 0 && ev->x < TEXTW(before)) || ev->x < 0)
 		return;
 
-	for(i = (fc > 0) ? fc : 0; i < nclients; i++) {
+	for(i = fc; i < nclients; i++) {
 		if(clients[i]->tabx > ev->x) {
 			switch(ev->button) {
 			case Button1:
@@ -318,7 +316,7 @@ die(const char *errstr, ...) {
 void
 drawbar(void) {
 	unsigned long *col;
-	int c, fc, width, n = 0;
+	int c, cc, fc, width;
 	char *name = NULL;
 
 	if(nclients == 0) {
@@ -333,12 +331,11 @@ drawbar(void) {
 	}
 
 	width = ww;
-	clients[nclients-1]->tabx = -1;
-	fc = getfirsttab();
-	if(fc > -1)
-		n = nclients - fc;
+	cc = ww / tabwidth;
+	if(nclients > cc)
+		cc = (ww - TEXTW(before) - TEXTW(after)) / tabwidth;
 
-	if((n * tabwidth) > width) {
+	if((fc = getfirsttab()) + cc < nclients) {
 		dc.w = TEXTW(after);
 		dc.x = width - dc.w;
 		drawtext(after, dc.sel);
@@ -353,15 +350,12 @@ drawbar(void) {
 		width -= dc.w;
 	}
 
-	for(c = (fc > 0)? fc : 0; c < nclients && dc.x < width; c++) {
-		dc.w = tabwidth;
+	cc = MIN(cc, nclients);
+	for(c = fc; c < fc + cc; c++) {
+		dc.w = width / cc;
 		if(c == sel) {
 			col = dc.sel;
-			if((n * tabwidth) > width) {
-				dc.w += width % tabwidth;
-			} else {
-				dc.w = width - (n - 1) * tabwidth;
-			}
+			dc.w += width % cc;
 		} else {
 			col = clients[c]->urgent ? dc.urg : dc.norm;
 		}
@@ -556,21 +550,17 @@ getcolor(const char *colstr) {
 
 int
 getfirsttab(void) {
-	int c, n, fc;
+	int cc, ret;
 
 	if(sel < 0)
-		return -1;
+		return 0;
 
-	c = sel;
-	fc = 0;
-	n = nclients;
-	if((n * tabwidth) > ww) {
-		for(; (c * tabwidth) > (ww / 2)
-				&& (n * tabwidth) > ww;
-				c--, n--, fc++);
-	}
+	cc = ww / tabwidth;
+	if(nclients > cc)
+		cc = (ww - TEXTW(before) - TEXTW(after)) / tabwidth;
 
-	return fc;
+	ret = sel - cc / 2 + (cc + 1) % 2;
+	return ret < 0 ? 0 : (ret + cc > nclients ? MAX(0, nclients - cc) : ret);
 }
 
 Bool
