@@ -12,7 +12,7 @@ INCS = -I. -I/usr/include
 LIBS = -L/usr/lib -lc -lX11
 
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\" -D_BSD_SOURCE
+CPPFLAGS = -DVERSION=\"${VERSION}\" -D_DEFAULT_SOURCE
 CFLAGS = -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
 
