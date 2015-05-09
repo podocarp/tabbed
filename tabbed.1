@@ -13,7 +13,7 @@ tabbed \- generic tabbed interface
 .RB [ \-n
 .IR name ]
 .RB [ \-p
-.IR [ s +/- ] pos ]
+.RB [ s {+/-} ] \fIpos\fR ]
 .RB [ \-o
 .IR normbgcol ]
 .RB [ \-O
@@ -28,7 +28,7 @@ tabbed \- generic tabbed interface
 .IR urgfgcol ]
 .RB [ \-r
 .IR narg ]
-.IR [ command ... ]
+.RI [ "command ..." ]
 .SH DESCRIPTION
 .B tabbed
 is a simple tabbed container for applications which support XEmbed. Tabbed
@@ -54,7 +54,9 @@ will print the usage of tabbed.
 .BI \-g " geometry"
 defines the X11 geometry string, which will fixate the height and width of
 tabbed.
-Them form is [=][<width>{xX}<height>][{+-}<xoffset>{+-}<yoffset>]. See
+The syntax is
+.RI [=][ width {xX} height ][{+-} xoffset {+-} yoffset ].
+See
 .BR XParseGeometry (3)
 for further details.
 .TP
@@ -62,7 +64,7 @@ for further details.
 will set the WM_CLASS attribute to
 .I name.
 .TP
-.BI \-p " [ s +/-] pos"
+.BR \-p " [" s {+-}] \fIpos\fR
 will set the absolute or relative position of where to start a new tab. When
 .I pos
 is is given without 's' in front it is an absolute position. Then negative
@@ -84,8 +86,8 @@ will disable automatic spawning of the command.
 .TP
 .BI \-o " normbgcol"
 defines the normal background color.
-.IR #RGB ,
-.IR #RRGGBB ,
+.RI # RGB ,
+.RI # RRGGBB ,
 and X color names are supported.
 .TP
 .BI \-O " normfgcol"

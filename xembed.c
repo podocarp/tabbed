@@ -33,8 +33,7 @@ main(int argc, char **argv)
 	if(pgrp == tcpgrp) { /* in foreground of tty */
 		argv[0] = argv[2];
 		argv[2] = xembed;
-	}
-	else {
+	} else {
 noembed:
 		argv += 2;
 	}
@@ -44,3 +43,4 @@ noembed:
 	perror(argv[0]); /* failed to execute */
 	return 1;
 }
+
