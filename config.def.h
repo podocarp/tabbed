@@ -12,6 +12,7 @@ static const char before[]      = "<";
 static const char after[]       = ">";
 static const int  tabwidth      = 200;
 static const Bool foreground    = True;
+static       Bool urgentswitch  = False;
 
 /*
  * Where to place a new tab when it is opened. When npisrelative is True,
@@ -56,6 +57,7 @@ static Key keys[] = { \
 	{ MODKEY,                       XK_q,      killclient,     { 0 } },
 
 	{ MODKEY,                       XK_u,      focusurgent,    { .v = NULL } },
+	{ MODKEY|ShiftMask,             XK_u,      toggle,         { .v = (void*) &urgentswitch } },
 
 	{ 0,                            XK_F11,    fullscreen,     { 0 } },
 };

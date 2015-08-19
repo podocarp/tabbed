@@ -129,6 +129,7 @@ static void setcmd(int argc, char *argv[], int);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
 static int textnw(const char *text, unsigned int len);
+static void toggle(const Arg *arg);
 static void unmanage(int c);
 static void updatenumlockmask(void);
 static void updatetitle(int c);
@@ -837,12 +838,21 @@ propertynotify(const XEvent *e) {
 			&& (c = getclient(ev->window)) > -1
 			&& (wmh = XGetWMHints(dpy, clients[c]->win))) {
 		if(wmh->flags & XUrgencyHint) {
-			if(c != sel) {
-				clients[c]->urgent = True;
-				drawbar();
-			}
 			XFree(wmh);
-			if((wmh = XGetWMHints(dpy, win))) {
+			wmh = XGetWMHints(dpy, win);
+			if(c != sel) {
+				if(urgentswitch && wmh && !(wmh->flags & XUrgencyHint)) {
+					/* only switch, if tabbed was focused since last urgency hint
+					 * if WMHints could not be received, default to no switch */
+					focus(c);
+				} else {
+					/* if no switch should be performed, mark tab as urgent */
+					clients[c]->urgent = True;
+					drawbar();
+				}
+			}
+			if(wmh && !(wmh->flags & XUrgencyHint)) {
+				/* update tabbed urgency hint if not set already */
 				wmh->flags |= XUrgencyHint;
 				XSetWMHints(dpy, win, wmh);
 			}
@@ -1091,6 +1101,11 @@ textnw(const char *text, unsigned int len) {
 	}
 
 	return XTextWidth(dc.font.xfont, text, len);
+}
+
+void
+toggle(const Arg *arg) {
+    *(Bool*) arg->v = !*(Bool*) arg->v;
 }
 
 void
