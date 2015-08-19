@@ -55,6 +55,8 @@ static Key keys[] = { \
 
 	{ MODKEY,                       XK_q,      killclient,     { 0 } },
 
+	{ MODKEY,                       XK_u,      focusurgent,    { .v = NULL } },
+
 	{ 0,                            XK_F11,    fullscreen,     { 0 } },
 };
 

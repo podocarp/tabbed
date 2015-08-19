@@ -104,6 +104,7 @@ static void expose(const XEvent *e);
 static void focus(int c);
 static void focusin(const XEvent *e);
 static void focusonce(const Arg *arg);
+static void focusurgent(const Arg *);
 static void fullscreen(const Arg *arg);
 static char* getatom(int a);
 static int getclient(Window w);
@@ -489,6 +490,17 @@ focusin(const XEvent *e) {
 void
 focusonce(const Arg *arg) {
 	nextfocus = True;
+}
+
+void
+focusurgent(const Arg *args) {
+	int c;
+	for(c = (sel+1)%nclients; c != sel; c = (c+1)%nclients) {
+		if(clients[c]->urgent) {
+			focus(c);
+			return;
+		}
+	}
 }
 
 void
