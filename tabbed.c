@@ -1307,7 +1307,7 @@ main(int argc, char *argv[]) {
 		urgfgcolor = EARGF(usage());
 		break;
 	case 'v':
-		die("tabbed-"VERSION", © 2009-2015"
+		die("tabbed-"VERSION", © 2009-2016"
 			" tabbed engineers, see LICENSE"
 			" for details.\n");
 		break;
