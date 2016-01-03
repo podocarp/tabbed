@@ -408,7 +408,7 @@ ecalloc(size_t n, size_t size)
 	void *p;
 
 	if (!(p = calloc(n, size)))
-		die("tabbed: cannot calloc\n");
+		die("%s: cannot calloc\n", argv0);
 	return p;
 }
 
@@ -418,7 +418,7 @@ erealloc(void *o, size_t size)
 	void *p;
 
 	if (!(p = realloc(o, size)))
-		die("tabbed: cannot realloc\n");
+		die("%s: cannot realloc\n", argv0);
 	return p;
 }
 
@@ -564,7 +564,7 @@ getcolor(const char *colstr)
 	XColor color;
 
 	if (!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
-		die("tabbed: cannot allocate color '%s'\n", colstr);
+		die("%s: cannot allocate color '%s'\n", argv0, colstr);
 
 	return color.pixel;
 }
@@ -629,7 +629,8 @@ initfont(const char *fontstr)
 	dc.font.set = XCreateFontSet(dpy, fontstr, &missing, &n, &def);
 	if (missing) {
 		while (n--)
-			fprintf(stderr, "tabbed: missing fontset: %s\n", missing[n]);
+			fprintf(stderr, "%s: missing fontset: %s\n",
+			        argv0, missing[n]);
 		XFreeStringList(missing);
 	}
 
@@ -648,7 +649,7 @@ initfont(const char *fontstr)
 		dc.font.xfont = NULL;
 		if (!(dc.font.xfont = XLoadQueryFont(dpy, fontstr)) &&
 		    !(dc.font.xfont = XLoadQueryFont(dpy, "fixed")))
-			die("tabbed: cannot load font: '%s'\n", fontstr);
+			die("%s: cannot load font: '%s'\n", argv0, fontstr);
 
 		dc.font.ascent = dc.font.xfont->ascent;
 		dc.font.descent = dc.font.xfont->descent;
@@ -1097,7 +1098,7 @@ void
 sigchld(int unused)
 {
 	if (signal(SIGCHLD, sigchld) == SIG_ERR)
-		die("tabbed: cannot install SIGCHLD handler");
+		die("%s: cannot install SIGCHLD handler", argv0);
 
 	while (0 < waitpid(-1, NULL, WNOHANG));
 }
@@ -1112,12 +1113,12 @@ spawn(const Arg *arg)
 		setsid();
 		if (arg && arg->v) {
 			execvp(((char **)arg->v)[0], (char **)arg->v);
-			fprintf(stderr, "tabbed: execvp %s",
+			fprintf(stderr, "%s: execvp %s", argv0,
 			        ((char **)arg->v)[0]);
 		} else {
 			cmd[cmd_append_pos] = NULL;
 			execvp(cmd[0], cmd);
-			fprintf(stderr, "tabbed: execvp %s", cmd[0]);
+			fprintf(stderr, "%s: execvp %s", argv0, cmd[0]);
 		}
 		perror(" failed");
 		exit(0);
@@ -1267,8 +1268,8 @@ xerror(Display *dpy, XErrorEvent *ee)
 	        ee->error_code == BadDrawable))
 		return 0;
 
-	fprintf(stderr, "tabbed: fatal error: request code=%d, error code=%d\n",
-	        ee->request_code, ee->error_code);
+	fprintf(stderr, "%s: fatal error: request code=%d, error code=%d\n",
+	        argv0, ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
 }
 
@@ -1288,9 +1289,9 @@ xsettitle(Window w, const char *str)
 void
 usage(void)
 {
-	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos] "
-	    "[-r narg] [-o color] [-O color] [-t color] [-T color] "
-	    "[-u color] [-U color] command...\n", argv0);
+	die("usage: %s [-dfhsv] [-g geometry] [-n name] [-p [s+/-]pos]\n"
+	    "       [-r narg] [-o color] [-O color] [-t color] [-T color]\n"
+	    "       [-u color] [-U color] command...\n", argv0);
 }
 
 int
@@ -1351,9 +1352,8 @@ main(int argc, char *argv[])
 		urgbgcolor = EARGF(usage());
 		break;
 	case 'v':
-		die("tabbed-"VERSION", © 2009-2016"
-			" tabbed engineers, see LICENSE"
-			" for details.\n");
+		die("tabbed-"VERSION", © 2009-2016 tabbed engineers, "
+		    "see LICENSE for details.\n");
 		break;
 	default: /* FALLTHROUGH */
 	case 'h':
