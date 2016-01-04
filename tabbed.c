@@ -369,7 +369,7 @@ drawbar(void)
 void
 drawtext(const char *text, unsigned long col[ColLast])
 {
-	int i, x, y, h, len, olen;
+	int i, j, x, y, h, len, olen;
 	char buf[256];
 	XRectangle r = { dc.x, dc.y, dc.w, dc.h };
 
@@ -391,8 +391,11 @@ drawtext(const char *text, unsigned long col[ColLast])
 		return;
 
 	memcpy(buf, text, len);
-	if (len < olen)
-		for(i = len; i && i > len - 3; buf[--i] = '.');
+	if (len < olen) {
+		for (i = len, j = strlen(titletrim); j && i;
+		     buf[--i] = titletrim[--j])
+			;
+	}
 
 	XSetForeground(dpy, dc.gc, col[ColFG]);
 	if (dc.font.set)
