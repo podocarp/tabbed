@@ -155,7 +155,8 @@ static void (*handler[LASTEvent]) (const XEvent *) = {
 static int bh, wx, wy, ww, wh;
 static unsigned int numlockmask;
 static Bool running = True, nextfocus, doinitspawn = True,
-            fillagain = False, closelastclient = False;
+            fillagain = False, closelastclient = False,
+            killclientsfirst = False;
 static Display *dpy;
 static DC dc;
 static Atom wmatom[WMLast];
@@ -236,8 +237,13 @@ clientmessage(const XEvent *e)
 	const XClientMessageEvent *ev = &e->xclient;
 
 	if (ev->message_type == wmatom[WMProtocols] &&
-	    ev->data.l[0] == wmatom[WMDelete])
+	    ev->data.l[0] == wmatom[WMDelete]) {
+		if (nclients > 1 && killclientsfirst) {
+			killclient(0);
+			return;
+		}
 		running = False;
+	}
 }
 
 void
@@ -1247,7 +1253,7 @@ xsettitle(Window w, const char *str)
 void
 usage(void)
 {
-	die("usage: %s [-dfsv] [-g geometry] [-n name] [-p [s+/-]pos]\n"
+	die("usage: %s [-dfksv] [-g geometry] [-n name] [-p [s+/-]pos]\n"
 	    "       [-r narg] [-o color] [-O color] [-t color] [-T color]\n"
 	    "       [-u color] [-U color] command...\n", argv0);
 }
@@ -1272,6 +1278,9 @@ main(int argc, char *argv[])
 		break;
 	case 'g':
 		geometry = EARGF(usage());
+		break;
+	case 'k':
+		killclientsfirst = True;
 		break;
 	case 'n':
 		wmname = EARGF(usage());
