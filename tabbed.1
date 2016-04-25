@@ -5,6 +5,7 @@ tabbed \- generic tabbed interface
 .B tabbed
 .RB [ \-c ]
 .RB [ \-d ]
+.RB [ \-k ]
 .RB [ \-s ]
 .RB [ \-v ]
 .RB [ \-g
@@ -55,6 +56,10 @@ The syntax is
 See
 .BR XParseGeometry (3)
 for further details.
+.TP
+.B \-k
+close foreground tabbed client (instead of tabbed and all clients) when
+WM_DELETE_WINDOW is sent.
 .TP
 .BI \-n " name"
 will set the WM_CLASS attribute to
