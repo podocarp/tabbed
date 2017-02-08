@@ -217,7 +217,6 @@ cleanup(void)
 	for (i = 0; i < nclients; i++) {
 		focus(i);
 		killclient(NULL);
-		killclient(NULL);
 		XReparentWindow(dpy, clients[i]->win, root, 0, 0);
 		unmanage(i);
 	}
