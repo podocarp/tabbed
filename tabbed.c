@@ -502,6 +502,9 @@ focusurgent(const Arg *arg)
 {
 	int c;
 
+	if (sel < 0)
+		return;
+
 	for (c = (sel + 1) % nclients; c != sel; c = (c + 1) % nclients) {
 		if (clients[c]->urgent) {
 			focus(c);
@@ -785,11 +788,14 @@ movetab(const Arg *arg)
 	int c;
 	Client *new;
 
+	if (sel < 0)
+		return;
+
 	c = (sel + arg->i) % nclients;
 	if (c < 0)
 		c += nclients;
 
-	if (sel < 0 || c == sel)
+	if (c == sel)
 		return;
 
 	new = clients[sel];
