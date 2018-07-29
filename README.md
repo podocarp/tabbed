@@ -1,6 +1,11 @@
 # About
 This is pretty much the original tabbed utility but patched and fixed because some patches are a bit old.
 
+Upstream is here: 
+```
+git clone https://git.suckless.org/tabbed
+```
+
 # Patches
 
 - alpha
