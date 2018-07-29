@@ -32,6 +32,9 @@ define USE_ARGB (alpha != OPAQUE)
 
 ```
 
+Below is the original README:
+
+```txt
 # Usage
 
 `sudo make install`.
@@ -60,4 +63,5 @@ Afterwards enter the following command to build and install tabbed
 Running tabbed
 --------------
 See the man page for details.
+```
 
